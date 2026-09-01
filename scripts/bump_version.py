@@ -106,6 +106,21 @@ def write_version_to_xml(path: Path, tree: Et.ElementTree, elem: Et.Element, new
     tree.write(path, encoding="utf-8", xml_declaration=True)
 
 
+def get_major_tag(tag: str, prefix: str = "v") -> str:
+    """Extract the floating major version tag from a full version tag.
+
+    Args:
+        tag: The full version tag (e.g. 'v1.2.3' or 'v1.2.3-preview.1')
+        prefix: The tag prefix (default: 'v')
+
+    Returns:
+        The floating major version tag (e.g. 'v1')
+    """
+    version = tag[len(prefix):]
+    major = version.split(".")[0]
+    return f"{prefix}{major}"
+
+
 def main() -> int:
     if len(sys.argv) < 3:
         fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version]")
