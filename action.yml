@@ -1,7 +1,10 @@
 name: 'Code Of Chaos Version Bumper'
 description: 'Bump semantic versions in project files and optionally commit + tag'
 author: 'Code-Of-Chaos'
-color: 'FFFFFF'
+
+branding:
+  icon: 'trending-up'
+  color: 'white'
 
 inputs:
   version_file:
