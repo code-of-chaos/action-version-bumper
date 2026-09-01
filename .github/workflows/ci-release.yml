@@ -1,0 +1,44 @@
+name: "CI: Release"
+on:
+    workflow_dispatch:
+        inputs:
+            version_bump:
+                description: 'Version bump type'
+                required: true
+                type: choice
+                default: minor
+                options:
+                    - major
+                    - minor
+                    - patch
+                    - preview
+                    - custom
+            custom_version:
+                description: 'Custom version (only used if "custom" is selected, e.g., 1.0.0 or 1.0.0-preview.1)'
+                required: false
+                type: string
+
+permissions:
+    contents: write
+
+jobs:
+    test:
+        name: "CI: test"
+        uses: ./.github/workflows/shared-testing.yml
+
+    bump-version:
+        name: "CI: bump-version"
+        needs: test
+        if: ${{ github.ref == 'refs/heads/core' }}
+        uses: ./.github/workflows/shared-release-bump-version.yml
+        with:
+            version_bump: ${{ inputs.version_bump }}
+            custom_version: ${{ inputs.custom_version }}
+
+    publish:
+        name: "CI: publish"
+        needs: bump-version
+        uses: ./.github/workflows/shared-release-publish.yml
+        with:
+            tag_name: ${{ needs.bump-version.outputs.tag_name }}
+            new_version: ${{ needs.bump-version.outputs.new_version }}

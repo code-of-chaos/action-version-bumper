@@ -1,0 +1,132 @@
+name: 'Version Bumper'
+description: 'Bump semantic versions in project files and optionally commit + tag'
+author: 'Code-Of-Chaos'
+
+inputs:
+  version_file:
+    description: 'Path to the file containing the version (supports XML files and plain text files like VERSION)'
+    required: true
+  bump:
+    description: 'Version bump type: major, minor, patch, preview, or custom'
+    required: true
+  custom_version:
+    description: 'Custom version string (only used when bump is "custom", e.g. 1.0.0 or 1.0.0-preview.1)'
+    required: false
+    default: ''
+  version_element:
+    description: 'XPath to the version element in XML files. Ignored for plain text files (default: .//Version)'
+    required: false
+    default: './/Version'
+  commit:
+    description: 'Commit the version change'
+    required: false
+    default: 'false'
+  tag:
+    description: 'Create a git tag (format: v{version})'
+    required: false
+    default: 'false'
+  tag_prefix:
+    description: 'Prefix for the git tag'
+    required: false
+    default: 'v'
+  commit_message:
+    description: 'Commit message template ({version} is replaced with the new version)'
+    required: false
+    default: 'VersionBump : {tag}'
+  push:
+    description: 'Push commit and tag to origin'
+    required: false
+    default: 'false'
+
+outputs:
+  version:
+    description: 'The new version string'
+    value: ${{ steps.bump.outputs.version }}
+  tag:
+    description: 'The created git tag name'
+    value: ${{ steps.bump.outputs.tag }}
+  old_version:
+    description: 'The previous version string'
+    value: ${{ steps.bump.outputs.old_version }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Bump Version
+      id: bump
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        BUMP="${{ inputs.bump }}"
+        VERSION_FILE="${{ inputs.version_file }}"
+        CUSTOM_VERSION="${{ inputs.custom_version }}"
+        VERSION_ELEMENT="${{ inputs.version_element }}"
+        TAG_PREFIX="${{ inputs.tag_prefix }}"
+
+        ARGS=("$BUMP" "$VERSION_FILE" "$VERSION_ELEMENT")
+        if [ "$BUMP" == "custom" ]; then
+          if [ -z "$CUSTOM_VERSION" ]; then
+            echo "Error: custom_version is required when bump is 'custom'"
+            exit 1
+          fi
+          ARGS+=("$CUSTOM_VERSION")
+          ARGS+=("custom")
+        fi
+
+        OUTPUT=$(python "${{ github.action_path }}/scripts/bump_version.py" "${ARGS[@]}")
+        echo "$OUTPUT"
+
+        NEW_VERSION=$(echo "$OUTPUT" | tail -n 1)
+        OLD_VERSION=$(echo "$OUTPUT" | head -n 1 | sed 's/Bumped version: .* -> //')
+        TAG="${TAG_PREFIX}${NEW_VERSION}"
+
+        echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+        echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+    - name: Commit and Tag
+      if: inputs.commit == 'true' || inputs.tag == 'true' || inputs.push == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        TAG="${{ steps.bump.outputs.tag }}"
+        VERSION="${{ steps.bump.outputs.version }}"
+        COMMIT_MSG="${{ inputs.commit_message }}"
+        COMMIT_MSG="${COMMIT_MSG//\{version\}/$VERSION}"
+        COMMIT_MSG="${COMMIT_MSG//\{tag\}/$TAG}"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        if [ "${{ inputs.commit }}" == "true" ]; then
+          git add "${{ inputs.version_file }}"
+          if ! git diff --cached --quiet; then
+            git commit -m "$COMMIT_MSG"
+          else
+            echo "No version file changes detected; skipping commit."
+          fi
+        fi
+
+        if [ "${{ inputs.tag }}" == "true" ]; then
+          if git ls-remote --tags origin "$TAG" 2>/dev/null | grep -q "refs/tags/$TAG$"; then
+            echo "Tag $TAG already exists on origin; skipping tag."
+          else
+            if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+              git tag "$TAG"
+            fi
+          fi
+        fi
+
+        if [ "${{ inputs.push }}" == "true" ]; then
+          git push origin HEAD:${{ github.ref_name }}
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            git push origin "$TAG"
+          fi
+        fi

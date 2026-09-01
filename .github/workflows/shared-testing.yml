@@ -1,0 +1,107 @@
+name: "Shared: testing"
+on:
+    workflow_call:
+        inputs:
+            run_python_tests:
+                description: 'Run Python unit tests'
+                type: boolean
+                default: true
+            run_action_tests:
+                description: 'Run action integration tests'
+                type: boolean
+                default: true
+
+jobs:
+    python-tests:
+        name: "CI: python"
+        if: ${{ inputs.run_python_tests }}
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Setup Python
+                uses: actions/setup-python@v7
+                with:
+                    python-version: '3.x'
+
+            -   name: Install dependencies
+                run: pip install pytest
+
+            -   name: Run tests
+                run: pytest tests/ -v
+
+    action-test-version:
+        name: "CI: action (VERSION)"
+        if: ${{ inputs.run_action_tests }}
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Create test VERSION file
+                run: echo "0.1.0" > VERSION
+
+            -   name: Test action (patch)
+                id: bump
+                uses: ./
+                with:
+                    version_file: VERSION
+                    bump: patch
+
+            -   name: Verify output
+                run: |
+                    [ "${{ steps.bump.outputs.version }}" = "0.1.1" ] || exit 1
+                    [ "${{ steps.bump.outputs.old_version }}" = "0.1.0" ] || exit 1
+                    [ "${{ steps.bump.outputs.tag }}" = "v0.1.1" ] || exit 1
+
+    action-test-xml:
+        name: "CI: action (XML)"
+        if: ${{ inputs.run_action_tests }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            -   name: Create test XML file
+                run: |
+                    cat > Directory.Build.props << 'EOF'
+                    <?xml version="1.0" encoding="utf-8"?>
+                    <Project>
+                      <PropertyGroup><Version>1.0.0</Version></PropertyGroup>
+                    </Project>
+                    EOF
+
+            -   name: Test action (minor)
+                id: bump
+                uses: ./
+                with:
+                    version_file: Directory.Build.props
+                    bump: minor
+
+            -   name: Verify output
+                run: |
+                    [ "${{ steps.bump.outputs.version }}" = "1.1.0" ] || exit 1
+
+    action-test-commit:
+        name: "CI: action (commit)"
+        if: ${{ inputs.run_action_tests }}
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Create test file
+                run: echo "0.1.0" > VERSION
+
+            -   name: Test action with commit
+                id: bump
+                uses: ./
+                with:
+                    version_file: VERSION
+                    bump: patch
+                    commit: 'true'
+
+            -   name: Verify commit exists
+                run: |
+                    git log --oneline -1 | grep -q "VersionBump" || exit 1
