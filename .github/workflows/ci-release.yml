@@ -34,6 +34,7 @@ jobs:
         with:
             version_bump: ${{ inputs.version_bump }}
             custom_version: ${{ inputs.custom_version }}
+        secrets: inherit
 
     publish:
         name: "CI: publish"
