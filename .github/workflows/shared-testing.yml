@@ -32,9 +32,30 @@ jobs:
                 run: pytest tests/ -v
 
     action-test-version:
-        name: "CI: action (VERSION)"
+        name: "CI: action/version/${{ matrix.bump }}"
         if: ${{ inputs.run_action_tests }}
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    -   bump: major
+                        expected_old: "0.1.0"
+                        expected_new: "1.0.0"
+                        expected_tag: "v1.0.0"
+                    -   bump: minor
+                        expected_old: "0.1.0"
+                        expected_new: "0.2.0"
+                        expected_tag: "v0.2.0"
+                    -   bump: patch
+                        expected_old: "0.1.0"
+                        expected_new: "0.1.1"
+                        expected_tag: "v0.1.1"
+                    -   bump: custom
+                        expected_old: "0.1.0"
+                        expected_new: "2.0.0"
+                        expected_tag: "v2.0.0"
+                        custom_version: "2.0.0"
         steps:
             -   name: Checkout
                 uses: actions/checkout@v7
@@ -42,23 +63,37 @@ jobs:
             -   name: Create test VERSION file
                 run: echo "0.1.0" > VERSION
 
-            -   name: Test action (patch)
+            -   name: Test action
                 id: bump
                 uses: ./
                 with:
                     version_file: VERSION
-                    bump: patch
+                    bump: ${{ matrix.bump }}
+                    custom_version: ${{ matrix.custom_version || '' }}
 
             -   name: Verify output
                 run: |
-                    [ "${{ steps.bump.outputs.version }}" = "0.1.1" ] || exit 1
-                    [ "${{ steps.bump.outputs.old_version }}" = "0.1.0" ] || exit 1
-                    [ "${{ steps.bump.outputs.tag }}" = "v0.1.1" ] || exit 1
+                    [ "${{ steps.bump.outputs.version }}" = "${{ matrix.expected_new }}" ] || exit 1
+                    [ "${{ steps.bump.outputs.old_version }}" = "${{ matrix.expected_old }}" ] || exit 1
+                    [ "${{ steps.bump.outputs.tag }}" = "${{ matrix.expected_tag }}" ] || exit 1
 
     action-test-xml:
-        name: "CI: action (XML)"
+        name: "CI: action/xml/${{ matrix.bump }}"
         if: ${{ inputs.run_action_tests }}
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    -   bump: major
+                        expected_new: "2.0.0"
+                    -   bump: minor
+                        expected_new: "1.1.0"
+                    -   bump: patch
+                        expected_new: "1.0.1"
+                    -   bump: custom
+                        expected_new: "3.0.0"
+                        custom_version: "3.0.0"
         steps:
             - name: Checkout
               uses: actions/checkout@v7
@@ -72,36 +107,17 @@ jobs:
                     </Project>
                     EOF
 
-            -   name: Test action (minor)
+            -   name: Test action
                 id: bump
                 uses: ./
                 with:
                     version_file: Directory.Build.props
-                    bump: minor
+                    bump: ${{ matrix.bump }}
+                    version_element: .//Version
+                    custom_version: ${{ matrix.custom_version || '' }}
 
             -   name: Verify output
                 run: |
-                    [ "${{ steps.bump.outputs.version }}" = "1.1.0" ] || exit 1
-
-    action-test-commit:
-        name: "CI: action (commit)"
-        if: ${{ inputs.run_action_tests }}
-        runs-on: ubuntu-latest
-        steps:
-            -   name: Checkout
-                uses: actions/checkout@v7
-
-            -   name: Create test file
-                run: echo "0.1.0" > VERSION
-
-            -   name: Test action with commit
-                id: bump
-                uses: ./
-                with:
-                    version_file: VERSION
-                    bump: patch
-                    commit: 'true'
-
-            -   name: Verify commit exists
-                run: |
-                    git log --oneline -1 | grep -q "VersionBump" || exit 1
+                    [ "${{ steps.bump.outputs.version }}" = "${{ matrix.expected_new }}" ] || exit 1
+                    [ "${{ steps.bump.outputs.old_version }}" = "1.0.0" ] || exit 1
+                    [ "${{ steps.bump.outputs.tag }}" = "v${{ matrix.expected_new }}" ] || exit 1

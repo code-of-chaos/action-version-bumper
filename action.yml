@@ -53,7 +53,7 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.x'
 
@@ -83,7 +83,7 @@ runs:
         echo "$OUTPUT"
 
         NEW_VERSION=$(echo "$OUTPUT" | tail -n 1)
-        OLD_VERSION=$(echo "$OUTPUT" | head -n 1 | sed 's/Bumped version: .* -> //')
+        OLD_VERSION=$(echo "$OUTPUT" | head -n 1 | sed 's/Bumped version: \(.*\) -> .*/\1/')
         TAG="${TAG_PREFIX}${NEW_VERSION}"
 
         echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"

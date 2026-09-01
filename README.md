@@ -17,30 +17,30 @@ The action auto-detects file type based on extension:
 
 ### Required
 
-| Input | Description |
-|-------|-------------|
+| Input          | Description                                                                                                            |
+|----------------|------------------------------------------------------------------------------------------------------------------------|
 | `version_file` | Path to the file containing the version, relative to the repository root (e.g. `src/Directory.Build.props`, `VERSION`) |
-| `bump` | Version bump type. One of: `major`, `minor`, `patch`, `preview`, or `custom` |
+| `bump`         | Version bump type. One of: `major`, `minor`, `patch`, `preview`, or `custom`                                           |
 
 ### Optional
 
-| Input | Description | Default |
-|-------|-------------|---------|
-| `custom_version` | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''` |
-| `version_element` | XPath expression to locate the version element in XML files. Ignored for plain text files | `.//Version` |
-| `commit` | Whether to commit the version change to the current branch | `false` |
-| `tag` | Whether to create a git tag in the format `{tag_prefix}{version}` | `false` |
-| `tag_prefix` | Prefix for the git tag. The tag will be `{tag_prefix}{version}` | `v` |
-| `commit_message` | Template for the commit message. Supports `{version}` and `{tag}` placeholders | `VersionBump : {tag}` |
-| `push` | Whether to push the commit and tag to the remote origin | `false` |
+| Input             | Description                                                                                                    | Default               |
+|-------------------|----------------------------------------------------------------------------------------------------------------|-----------------------|
+| `custom_version`  | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''`                  |
+| `version_element` | XPath expression to locate the version element in XML files. Ignored for plain text files                      | `.//Version`          |
+| `commit`          | Whether to commit the version change to the current branch                                                     | `false`               |
+| `tag`             | Whether to create a git tag in the format `{tag_prefix}{version}`                                              | `false`               |
+| `tag_prefix`      | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                | `v`                   |
+| `commit_message`  | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                 | `VersionBump : {tag}` |
+| `push`            | Whether to push the commit and tag to the remote origin                                                        | `false`               |
 
 ## Outputs
 
-| Output | Description | Example |
-|--------|-------------|---------|
-| `version` | The new version string after bumping | `1.2.0` |
-| `old_version` | The previous version string before bumping | `1.1.3` |
-| `tag` | The full git tag name (prefix + version) | `v1.2.0` |
+| Output        | Description                                | Example  |
+|---------------|--------------------------------------------|----------|
+| `version`     | The new version string after bumping       | `1.2.0`  |
+| `old_version` | The previous version string before bumping | `1.1.3`  |
+| `tag`         | The full git tag name (prefix + version)   | `v1.2.0` |
 
 ## Version Format
 
@@ -51,24 +51,24 @@ The action supports semantic versioning with an optional preview suffix:
 
 ## Bump Rules
 
-| Bump Type | From | To | Description |
-|-----------|------|-----|-------------|
-| `major` | `1.2.3` | `2.0.0` | Increments major, resets minor and patch to 0 |
-| `minor` | `1.2.3` | `1.3.0` | Increments minor, resets patch to 0 |
-| `patch` | `1.2.3` | `1.2.4` | Increments patch by 1 |
+| Bump Type | From    | To                | Description                                            |
+|-----------|---------|-------------------|--------------------------------------------------------|
+| `major`   | `1.2.3` | `2.0.0`           | Increments major, resets minor and patch to 0          |
+| `minor`   | `1.2.3` | `1.3.0`           | Increments minor, resets patch to 0                    |
+| `patch`   | `1.2.3` | `1.2.4`           | Increments patch by 1                                  |
 | `preview` | `1.2.3` | `1.2.3-preview.1` | Adds preview suffix (or increments if already preview) |
-| `custom` | `1.2.3` | (user-specified) | Sets to the exact version provided in `custom_version` |
+| `custom`  | `1.2.3` | (user-specified)  | Sets to the exact version provided in `custom_version` |
 
 ### Preview Bump Behavior
 
 When bumping a version that already has a preview suffix:
 
-| Bump Type | From | To | Description |
-|-----------|------|-----|-------------|
-| `major` | `1.2.3-preview.5` | `2.0.0-preview.0` | Bumps major, resets preview to 0 |
-| `minor` | `1.2.3-preview.5` | `1.3.0-preview.0` | Bumps minor, resets preview to 0 |
-| `patch` | `1.2.3-preview.5` | `1.2.4-preview.0` | Bumps patch, resets preview to 0 |
-| `preview` | `1.2.3-preview.5` | `1.2.3-preview.6` | Increments preview number by 1 |
+| Bump Type | From              | To                | Description                      |
+|-----------|-------------------|-------------------|----------------------------------|
+| `major`   | `1.2.3-preview.5` | `2.0.0-preview.0` | Bumps major, resets preview to 0 |
+| `minor`   | `1.2.3-preview.5` | `1.3.0-preview.0` | Bumps minor, resets preview to 0 |
+| `patch`   | `1.2.3-preview.5` | `1.2.4-preview.0` | Bumps patch, resets preview to 0 |
+| `preview` | `1.2.3-preview.5` | `1.2.3-preview.6` | Increments preview number by 1   |
 
 ## Examples
 
