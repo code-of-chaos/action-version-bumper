@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.bump_version import bump, validate_version
+from scripts.bump_version import bump, validate_version, get_major_tag
 import scripts.bump_version as bv
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -260,3 +260,22 @@ def test_main_version_file_with_trailing_newline(tmp_path: Path, monkeypatch: py
     assert bv.main() == 0
 
     assert vf.read_text().strip() == "1.0.1"
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Floating version tests
+# ---------------------------------------------------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("tag", "prefix", "expected"),
+    [
+        ("v1.2.3", "v", "v1"),
+        ("v2.0.0", "v", "v2"),
+        ("v10.20.30", "v", "v10"),
+        ("v1.2.3-preview.1", "v", "v1"),
+        ("v0.1.0", "v", "v0"),
+        ("release-1.2.3", "release-", "release-1"),
+        ("1.2.3", "", "1"),
+    ],
+)
+def test_get_major_tag(tag: str, prefix: str, expected: str) -> None:
+    assert get_major_tag(tag, prefix) == expected

@@ -41,6 +41,10 @@ inputs:
     description: 'Push commit and tag to origin'
     required: false
     default: 'false'
+  floating_major_version:
+    description: 'Create/update a floating major version tag (e.g. v1 for v1.2.0). Requires tag to be true.'
+    required: false
+    default: 'false'
 
 outputs:
   version:
@@ -52,6 +56,9 @@ outputs:
   old_version:
     description: 'The previous version string'
     value: ${{ steps.bump.outputs.old_version }}
+  floating_tag:
+    description: 'The floating major version tag name (if floating_major_version is enabled)'
+    value: ${{ steps.floating_tag.outputs.floating_tag }}
 
 runs:
   using: 'composite'
@@ -133,4 +140,33 @@ runs:
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             git push origin "$TAG"
           fi
+        fi
+
+        if [ "${{ inputs.floating_major_version }}" == "true" ] && [ "${{ inputs.tag }}" == "true" ]; then
+          TAG_PREFIX="${{ inputs.tag_prefix }}"
+          VERSION_NO_PREFIX="${VERSION#${TAG_PREFIX}}"
+          MAJOR="${VERSION_NO_PREFIX%%.*}"
+          FLOATING_TAG="${TAG_PREFIX}${MAJOR}"
+
+          git tag -f "$FLOATING_TAG"
+          if [ "${{ inputs.push }}" == "true" ]; then
+            git push origin "$FLOATING_TAG" --force
+          fi
+        fi
+
+    - name: Output floating tag
+      id: floating_tag
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        if [ "${{ inputs.floating_major_version }}" == "true" ] && [ "${{ inputs.tag }}" == "true" ]; then
+          TAG="${{ steps.bump.outputs.tag }}"
+          TAG_PREFIX="${{ inputs.tag_prefix }}"
+          VERSION_NO_PREFIX="${TAG#${TAG_PREFIX}}"
+          MAJOR="${VERSION_NO_PREFIX%%.*}"
+          FLOATING_TAG="${TAG_PREFIX}${MAJOR}"
+          echo "floating_tag=$FLOATING_TAG" >> "$GITHUB_OUTPUT"
+        else
+          echo "floating_tag=" >> "$GITHUB_OUTPUT"
         fi
