@@ -1,4 +1,4 @@
-name: 'Version Bumper'
+name: 'Code Of Chaos Version Bumper'
 description: 'Bump semantic versions in project files and optionally commit + tag'
 author: 'Code-Of-Chaos'
 
