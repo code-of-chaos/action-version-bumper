@@ -24,23 +24,25 @@ The action auto-detects file type based on extension:
 
 ### Optional
 
-| Input             | Description                                                                                                    | Default               |
-|-------------------|----------------------------------------------------------------------------------------------------------------|-----------------------|
-| `custom_version`  | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''`                  |
-| `version_element` | XPath expression to locate the version element in XML files. Ignored for plain text files                      | `.//Version`          |
-| `commit`          | Whether to commit the version change to the current branch                                                     | `false`               |
-| `tag`             | Whether to create a git tag in the format `{tag_prefix}{version}`                                              | `false`               |
-| `tag_prefix`      | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                | `v`                   |
-| `commit_message`  | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                 | `VersionBump : {tag}` |
-| `push`            | Whether to push the commit and tag to the remote origin                                                        | `false`               |
+| Input                    | Description                                                                                                    | Default               |
+|--------------------------|----------------------------------------------------------------------------------------------------------------|-----------------------|
+| `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''`                  |
+| `version_element`        | XPath expression to locate the version element in XML files. Ignored for plain text files                      | `.//Version`          |
+| `commit`                 | Whether to commit the version change to the current branch                                                     | `false`               |
+| `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                              | `false`               |
+| `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                | `v`                   |
+| `commit_message`         | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                 | `VersionBump : {tag}` |
+| `push`                   | Whether to push the commit and tag to the remote origin                                                        | `false`               |
+| `floating_major_version` | Create/update a floating major version tag (e.g. `v1` for `v1.2.0`). Requires `tag` to be `true`.              | `false`               |
 
 ## Outputs
 
-| Output        | Description                                | Example  |
-|---------------|--------------------------------------------|----------|
-| `version`     | The new version string after bumping       | `1.2.0`  |
-| `old_version` | The previous version string before bumping | `1.1.3`  |
-| `tag`         | The full git tag name (prefix + version)   | `v1.2.0` |
+| Output         | Description                                                                  | Example  |
+|----------------|------------------------------------------------------------------------------|----------|
+| `version`      | The new version string after bumping                                         | `1.2.0`  |
+| `old_version`  | The previous version string before bumping                                   | `1.1.3`  |
+| `tag`          | The full git tag name (prefix + version)                                     | `v1.2.0` |
+| `floating_tag` | The floating major version tag name (if `floating_major_version` is enabled) | `v1`     |
 
 ## Version Format
 
@@ -152,6 +154,23 @@ This creates tags like `release-1.2.3` instead of `v1.2.3`.
     commit_message: 'chore: bump version to {version}'
 ```
 
+### Floating major version tag
+
+Automatically maintain a floating major version tag (e.g. `v1`) that always points to the latest `v1.x.x` release:
+
+```yaml
+- uses: Code-Of-Chaos/action-version-bumper@v1
+  with:
+    version_file: VERSION
+    bump: minor
+    commit: 'true'
+    tag: 'true'
+    push: 'true'
+    floating_major_version: 'true'
+```
+
+When releasing `v1.2.0`, this also updates `v1` to point to the same commit. Users can then reference `@v1` in their workflows to always get the latest `v1.x.x` release.
+
 ### Use outputs in downstream steps
 
 ```yaml
@@ -209,6 +228,7 @@ jobs:
           commit: 'true'
           tag: 'true'
           push: 'true'
+          floating_major_version: 'true'
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -242,21 +262,21 @@ python scripts/bump_version.py patch src/MyProject.csproj .//PackageVersion
 bump_version.py <bump> <version_file> [version_element] [custom_version]
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `bump` | Bump type: `major`, `minor`, `patch`, `preview`, or `custom` |
-| `version_file` | Path to the file containing the version |
+| Argument          | Description                                                          |
+|-------------------|----------------------------------------------------------------------|
+| `bump`            | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`         |
+| `version_file`    | Path to the file containing the version                              |
 | `version_element` | XPath to the version element (XML files only, default: `.//Version`) |
-| `custom_version` | Version string when bump type is `custom` |
+| `custom_version`  | Version string when bump type is `custom`                            |
 
 ## File Type Detection
 
 The action uses file extension to determine how to read/write the version:
 
-| Extension | Mode | Example Files |
-|-----------|------|---------------|
+| Extension                                                     | Mode        | Example Files                               |
+|---------------------------------------------------------------|-------------|---------------------------------------------|
 | `.xml`, `.csproj`, `.props`, `.targets`, `.vbproj`, `.fsproj` | XML (XPath) | `Directory.Build.props`, `MyProject.csproj` |
-| Anything else | Plain text | `VERSION`, `.version`, `version.txt` |
+| Anything else                                                 | Plain text  | `VERSION`, `.version`, `version.txt`        |
 
 For plain text files, the file must contain only the version string (with optional trailing newline).
 
