@@ -35,6 +35,8 @@ The action auto-detects file type based on extension:
 | `commit_message`         | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                 | `VersionBump : {tag}` |
 | `push`                   | Whether to push the commit and tag to the remote origin                                                        | `false`               |
 | `floating_major_version` | Create/update a floating major version tag (e.g. `v1` for `v1.2.0`). Requires `tag` to be `true`.              | `false`               |
+| `preview_label`          | Label for preview versions. E.g. `BETA` for `1.0.1-BETA-1`                                                  | `preview`             |
+| `preview_separator`      | Separator between label and number. E.g. `-` for `1.0.1-BETA-1`                                             | `.`                   |
 
 ## Outputs
 
@@ -50,7 +52,9 @@ The action auto-detects file type based on extension:
 The action supports semantic versioning with an optional preview suffix:
 
 - **Stable**: `X.Y.Z` (e.g. `1.2.3`)
-- **Preview**: `X.Y.Z-preview.N` (e.g. `1.2.3-preview.1`)
+- **Preview**: `X.Y.Z-{label}{separator}N` (e.g. `1.2.3-preview.1`, `1.0.1-BETA-1`)
+
+The preview label defaults to `preview` and separator to `.`, both customizable via `preview_label` and `preview_separator` inputs.
 
 ## Bump Rules
 
@@ -155,6 +159,21 @@ If your version is stored in a non-standard element:
 ```
 
 This creates tags like `release-1.2.3` instead of `v1.2.3`.
+
+### Custom preview label
+
+Use a custom label and separator for preview versions (e.g. for Obsidian beta releases):
+
+```yaml
+- uses: Code-Of-Chaos/action-version-bumper@v1
+  with:
+    version_file: VERSION
+    bump: preview
+    preview_label: 'BETA'
+    preview_separator: '-'
+```
+
+This produces versions like `1.0.0-BETA-1` instead of `1.0.0-preview.1`.
 
 ### Custom commit message
 
@@ -270,20 +289,28 @@ python scripts/bump_version.py custom src/Directory.Build.props .//Version 2.0.0
 
 # Bump using a custom xpath element
 python scripts/bump_version.py patch src/MyProject.csproj .//PackageVersion
+
+# Bump preview with custom label
+python scripts/bump_version.py preview VERSION .//Version "" BETA -
+
+# Bump preview with custom label and dot separator
+python scripts/bump_version.py preview VERSION .//Version "" RC .
 ```
 
 ### CLI Arguments
 
 ```
-bump_version.py <bump> <version_file> [version_element] [custom_version]
+bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]
 ```
 
-| Argument          | Description                                                                       |
-|-------------------|-----------------------------------------------------------------------------------|
-| `bump`            | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`                     |
-| `version_file`    | Path to the file containing the version                                           |
-| `version_element` | XPath to the version element (XML) or JSON key (JSON). Default: `.//Version`/`version` |
-| `custom_version`  | Version string when bump type is `custom`                                         |
+| Argument            | Description                                                                       |
+|---------------------|-----------------------------------------------------------------------------------|
+| `bump`              | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`                     |
+| `version_file`      | Path to the file containing the version                                           |
+| `version_element`   | XPath to the version element (XML) or JSON key (JSON). Default: `.//Version`/`version` |
+| `custom_version`    | Version string when bump type is `custom`                                         |
+| `preview_label`     | Label for preview versions. Default: `preview`                                    |
+| `preview_separator` | Separator between label and number. Default: `.`                                  |
 
 ## File Type Detection
 

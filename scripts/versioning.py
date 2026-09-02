@@ -10,7 +10,7 @@ from typing import Final, Literal, Never
 # ---------------------------------------------------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------------------------------------------------
-VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\d+\.\d+\.\d+(-preview\.\d+)?$")
+VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\d+\.\d+\.\d+(-[\w]+[.\-]\d+)?$")
 BumpPart = Literal["major", "minor", "patch", "preview"]
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -21,23 +21,24 @@ def fail(message: str) -> Never:
     raise SystemExit(1)
 
 
-def validate_version(version: str) -> bool:
+def validate_version(version: str, preview_label: str = "preview", preview_separator: str = ".") -> bool:
     """
-    Validate version format: major.minor.patch or major.minor.patch-preview.number.
+    Validate version format: major.minor.patch or major.minor.patch-label{separator}number.
     """
     return VERSION_PATTERN.match(version) is not None
 
 
-def bump(version: str, part: BumpPart) -> str:
+def bump(version: str, part: BumpPart, preview_label: str = "preview", preview_separator: str = ".") -> str:
     """
     Bump version according to 'major', 'minor', 'patch', or 'preview'.
-    Expects a format like: 0.1.0-preview.88
+    Expects a format like: 0.1.0-preview.88 or 0.1.0-BETA-1
     """
     core: str
     preview: str | None
     core, preview = version, None
-    if "-preview." in version:
-        core, preview = version.split("-preview.")
+    suffix = f"-{preview_label}{preview_separator}"
+    if suffix in version:
+        core, preview = version.split(suffix, 1)
     had_preview = preview is not None
 
     major, minor, patch = map(int, core.split("."))
@@ -64,7 +65,7 @@ def bump(version: str, part: BumpPart) -> str:
 
     new_version = f"{major}.{minor}.{patch}"
     if preview is not None:
-        new_version += f"-preview.{preview}"
+        new_version += f"-{preview_label}{preview_separator}{preview}"
     return new_version
 
 

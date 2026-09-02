@@ -97,3 +97,63 @@ def test_main_version_file_with_trailing_newline(tmp_path: Path, monkeypatch: py
     assert bv.main() == 0
 
     assert vf.read_text().strip() == "1.0.1"
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Custom preview label tests
+# ---------------------------------------------------------------------------------------------------------------------
+def test_main_preview_bump_custom_label(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_text_version_file(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "preview", str(vf), "", "", "BETA"])
+
+    assert bv.main() == 0
+
+    assert vf.read_text().strip() == "1.0.0-BETA.1"
+
+
+def test_main_preview_increment_custom_label(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_text_version_file(tmp_path, "1.0.0-BETA.3")
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "preview", str(vf), "", "", "BETA"])
+
+    assert bv.main() == 0
+
+    assert vf.read_text().strip() == "1.0.0-BETA.4"
+
+
+def test_main_patch_bump_from_custom_label_preview(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_text_version_file(tmp_path, "1.0.0-BETA.3")
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf), "", "", "BETA"])
+
+    assert bv.main() == 0
+
+    assert vf.read_text().strip() == "1.0.1-BETA.0"
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Custom separator tests
+# ---------------------------------------------------------------------------------------------------------------------
+def test_main_preview_bump_custom_separator(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_text_version_file(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "preview", str(vf), "", "", "BETA", "-"])
+
+    assert bv.main() == 0
+
+    assert vf.read_text().strip() == "1.0.0-BETA-1"
+
+
+def test_main_preview_increment_custom_separator(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_text_version_file(tmp_path, "1.0.0-BETA-3")
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "preview", str(vf), "", "", "BETA", "-"])
+
+    assert bv.main() == 0
+
+    assert vf.read_text().strip() == "1.0.0-BETA-4"
+
+
+def test_main_patch_bump_from_custom_separator_preview(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_text_version_file(tmp_path, "1.0.0-BETA-3")
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf), "", "", "BETA", "-"])
+
+    assert bv.main() == 0
+
+    assert vf.read_text().strip() == "1.0.1-BETA-0"

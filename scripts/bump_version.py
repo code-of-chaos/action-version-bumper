@@ -40,11 +40,13 @@ def find_handler(version_file: Path) -> Handler:
 
 def main() -> int:
     if len(sys.argv) < 3:
-        fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version]")
+        fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]")
 
     part = sys.argv[1].lower()
     version_file = Path(sys.argv[2])
     version_element = sys.argv[3] if len(sys.argv) > 3 else ".//Version"
+    preview_label = sys.argv[5] if len(sys.argv) > 5 else "preview"
+    preview_separator = sys.argv[6] if len(sys.argv) > 6 else "."
 
     if not version_file.exists():
         fail(f"Error: File not found: {version_file}")
@@ -53,8 +55,8 @@ def main() -> int:
 
     # Read current version
     old_version, data = handler.read_version(version_file, version_element)
-    if not validate_version(old_version):
-        fail(f"Error: Invalid version format '{old_version}' in {version_file}. Expected X.Y.Z or X.Y.Z-preview.N")
+    if not validate_version(old_version, preview_label, preview_separator):
+        fail(f"Error: Invalid version format '{old_version}' in {version_file}. Expected X.Y.Z or X.Y.Z-{preview_label}{preview_separator}N")
 
     # Calculate new version
     if part == "custom":
@@ -62,15 +64,15 @@ def main() -> int:
             fail("Error: custom version must be provided as the 4th argument")
 
         new_version = sys.argv[4]
-        if not validate_version(new_version):
+        if not validate_version(new_version, preview_label, preview_separator):
             fail(
                 f"Error: Invalid version format '{new_version}'. "
-                "Expected format: X.Y.Z or X.Y.Z-preview.N"
+                f"Expected format: X.Y.Z or X.Y.Z-{preview_label}{preview_separator}N"
             )
     else:
         if part not in ("major", "minor", "patch", "preview"):
             fail(f"Error: Unknown bump part '{part}'")
-        new_version = bump(old_version, part)
+        new_version = bump(old_version, part, preview_label, preview_separator)
 
     # Write new version
     handler.write_version(version_file, data, version_element, new_version)

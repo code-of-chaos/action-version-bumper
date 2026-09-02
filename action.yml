@@ -45,6 +45,14 @@ inputs:
     description: 'Create/update a floating major version tag (e.g. v1 for v1.2.0). Requires tag to be true.'
     required: false
     default: 'false'
+  preview_label:
+    description: 'Label for preview versions (default: "preview"). E.g. "BETA" for 1.0.1-BETA-1'
+    required: false
+    default: 'preview'
+  preview_separator:
+    description: 'Separator between preview label and number (default: "."). E.g. "-" for 1.0.1-BETA-1'
+    required: false
+    default: '.'
 
 outputs:
   version:
@@ -79,6 +87,8 @@ runs:
         CUSTOM_VERSION="${{ inputs.custom_version }}"
         VERSION_ELEMENT="${{ inputs.version_element }}"
         TAG_PREFIX="${{ inputs.tag_prefix }}"
+        PREVIEW_LABEL="${{ inputs.preview_label }}"
+        PREVIEW_SEPARATOR="${{ inputs.preview_separator }}"
 
         ARGS=("$BUMP" "$VERSION_FILE" "$VERSION_ELEMENT")
         if [ "$BUMP" == "custom" ]; then
@@ -87,8 +97,9 @@ runs:
             exit 1
           fi
           ARGS+=("$CUSTOM_VERSION")
-          ARGS+=("custom")
         fi
+        ARGS+=("$PREVIEW_LABEL")
+        ARGS+=("$PREVIEW_SEPARATOR")
 
         OUTPUT=$(python "${{ github.action_path }}/scripts/bump_version.py" "${ARGS[@]}")
         echo "$OUTPUT"

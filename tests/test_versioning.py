@@ -50,6 +50,55 @@ def test_bump_unknown_part_raises_value_error() -> None:
 
 
 @pytest.mark.parametrize(
+    ("version", "part", "label", "expected"),
+    [
+        ("1.2.3", "preview", "BETA", "1.2.3-BETA.1"),
+        ("1.2.3-BETA.5", "patch", "BETA", "1.2.4-BETA.0"),
+        ("1.2.3-BETA.5", "minor", "BETA", "1.3.0-BETA.0"),
+        ("1.2.3-BETA.5", "major", "BETA", "2.0.0-BETA.0"),
+        ("1.2.3-BETA.5", "preview", "BETA", "1.2.3-BETA.6"),
+        ("1.2.3", "preview", "RC", "1.2.3-RC.1"),
+        ("1.2.3-RC.2", "preview", "RC", "1.2.3-RC.3"),
+    ],
+)
+def test_bump_with_custom_preview_label(version: str, part: str, label: str, expected: str) -> None:
+    # noinspection PyTypeChecker
+    assert bump(version, part, label) == expected
+
+
+@pytest.mark.parametrize(
+    ("version", "part", "label", "separator", "expected"),
+    [
+        ("1.2.3", "preview", "BETA", "-", "1.2.3-BETA-1"),
+        ("1.2.3-BETA-5", "patch", "BETA", "-", "1.2.4-BETA-0"),
+        ("1.2.3-BETA-5", "minor", "BETA", "-", "1.3.0-BETA-0"),
+        ("1.2.3-BETA-5", "major", "BETA", "-", "2.0.0-BETA-0"),
+        ("1.2.3-BETA-5", "preview", "BETA", "-", "1.2.3-BETA-6"),
+        ("1.2.3", "preview", "beta", "-", "1.2.3-beta-1"),
+        ("1.2.3-beta-2", "preview", "beta", "-", "1.2.3-beta-3"),
+    ],
+)
+def test_bump_with_custom_separator(version: str, part: str, label: str, separator: str, expected: str) -> None:
+    # noinspection PyTypeChecker
+    assert bump(version, part, label, separator) == expected
+
+
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [
+        ("1.2.3", True),
+        ("1.2.3-BETA.1", True),
+        ("1.2.3-RC.1", True),
+        ("1.2.3-preview.1", True),
+        ("1.2.3-BETA-1", True),
+        ("1.2.3-beta-1", True),
+    ],
+)
+def test_validate_version_with_custom_label(version: str, expected: bool) -> None:
+    assert validate_version(version) is expected
+
+
+@pytest.mark.parametrize(
     ("tag", "prefix", "expected"),
     [
         ("v1.2.3", "v", "v1"),
