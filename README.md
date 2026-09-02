@@ -1,6 +1,6 @@
 # Version Bumper
 
-A reusable GitHub Action for bumping semantic versions in project files. Supports both XML files (`.csproj`, `Directory.Build.props`, etc.) and plain text files (`VERSION`, `.version`, etc.).
+A reusable GitHub Action for bumping semantic versions in project files. Supports XML files (`.csproj`, `Directory.Build.props`, etc.), JSON files (`package.json`, etc.), and plain text files (`VERSION`, `.version`, etc.).
 
 ## How It Works
 
@@ -11,6 +11,7 @@ A reusable GitHub Action for bumping semantic versions in project files. Support
 
 The action auto-detects file type based on extension:
 - **XML files** (`.xml`, `.csproj`, `.props`, `.targets`, `.vbproj`, `.fsproj`): Reads/writes using XPath
+- **JSON files** (`.json`): Reads/writes a JSON key (default: `version`)
 - **Everything else** (`.version`, `.txt`, no extension): Reads/writes as plain text
 
 ## Inputs
@@ -27,7 +28,7 @@ The action auto-detects file type based on extension:
 | Input                    | Description                                                                                                    | Default               |
 |--------------------------|----------------------------------------------------------------------------------------------------------------|-----------------------|
 | `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''`                  |
-| `version_element`        | XPath expression to locate the version element in XML files. Ignored for plain text files                      | `.//Version`          |
+| `version_element`        | XPath expression to locate the version element in XML files, or JSON key for JSON files. Ignored for plain text files | `.//Version`          |
 | `commit`                 | Whether to commit the version change to the current branch                                                     | `false`               |
 | `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                              | `false`               |
 | `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                | `v`                   |
@@ -93,6 +94,18 @@ Given a `VERSION` file containing `1.0.0`, this produces `1.1.0`.
     version_file: src/Directory.Build.props
     bump: minor
 ```
+
+### package.json (JSON)
+
+```yaml
+- uses: Code-Of-Chaos/action-version-bumper@v1
+  with:
+    version_file: package.json
+    bump: minor
+    version_element: 'version'
+```
+
+The `version_element` input specifies the JSON key to update. For `package.json`, use `version`. For custom JSON files, use whatever key holds your version.
 
 ### Bump, commit, tag, and push
 
@@ -249,6 +262,9 @@ python scripts/bump_version.py patch VERSION
 # Bump minor in an XML file
 python scripts/bump_version.py minor src/Directory.Build.props
 
+# Bump patch in a package.json
+python scripts/bump_version.py patch package.json version
+
 # Set a custom version with custom xpath
 python scripts/bump_version.py custom src/Directory.Build.props .//Version 2.0.0-preview.1
 
@@ -262,12 +278,12 @@ python scripts/bump_version.py patch src/MyProject.csproj .//PackageVersion
 bump_version.py <bump> <version_file> [version_element] [custom_version]
 ```
 
-| Argument          | Description                                                          |
-|-------------------|----------------------------------------------------------------------|
-| `bump`            | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`         |
-| `version_file`    | Path to the file containing the version                              |
-| `version_element` | XPath to the version element (XML files only, default: `.//Version`) |
-| `custom_version`  | Version string when bump type is `custom`                            |
+| Argument          | Description                                                                       |
+|-------------------|-----------------------------------------------------------------------------------|
+| `bump`            | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`                     |
+| `version_file`    | Path to the file containing the version                                           |
+| `version_element` | XPath to the version element (XML) or JSON key (JSON). Default: `.//Version`/`version` |
+| `custom_version`  | Version string when bump type is `custom`                                         |
 
 ## File Type Detection
 
@@ -276,9 +292,12 @@ The action uses file extension to determine how to read/write the version:
 | Extension                                                     | Mode        | Example Files                               |
 |---------------------------------------------------------------|-------------|---------------------------------------------|
 | `.xml`, `.csproj`, `.props`, `.targets`, `.vbproj`, `.fsproj` | XML (XPath) | `Directory.Build.props`, `MyProject.csproj` |
+| `.json`                                                       | JSON (key)  | `package.json`, `app-version.json`          |
 | Anything else                                                 | Plain text  | `VERSION`, `.version`, `version.txt`        |
 
 For plain text files, the file must contain only the version string (with optional trailing newline).
+
+For JSON files, the `version_element` input specifies which key to read/write. For `package.json`, use `version`.
 
 ## Running Tests
 

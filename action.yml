@@ -8,7 +8,7 @@ branding:
 
 inputs:
   version_file:
-    description: 'Path to the file containing the version (supports XML files and plain text files like VERSION)'
+    description: 'Path to the file containing the version (supports XML files, JSON files like package.json, and plain text files like VERSION)'
     required: true
   bump:
     description: 'Version bump type: major, minor, patch, preview, or custom'
@@ -18,7 +18,7 @@ inputs:
     required: false
     default: ''
   version_element:
-    description: 'XPath to the version element in XML files. Ignored for plain text files (default: .//Version)'
+    description: 'XPath to the version element in XML files, or JSON key path for JSON files. Ignored for plain text files (default: .//Version for XML, version for JSON)'
     required: false
     default: './/Version'
   commit:

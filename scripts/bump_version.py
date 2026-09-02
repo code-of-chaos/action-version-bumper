@@ -4,6 +4,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 from __future__ import annotations
 
+import json
 import re
 import sys
 import xml.etree.ElementTree as Et
@@ -16,6 +17,7 @@ from typing import Final, Literal, Never
 VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\d+\.\d+\.\d+(-preview\.\d+)?$")
 BumpPart = Literal["major", "minor", "patch", "preview"]
 XML_EXTENSIONS: Final[set[str]] = {".xml", ".csproj", ".props", ".targets", ".vbproj", ".fsproj"}
+JSON_EXTENSIONS: Final[set[str]] = {".json"}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Code
@@ -77,6 +79,11 @@ def is_xml_file(path: Path) -> bool:
     return path.suffix.lower() in XML_EXTENSIONS
 
 
+def is_json_file(path: Path) -> bool:
+    """Check if the file is a JSON file based on extension."""
+    return path.suffix.lower() in JSON_EXTENSIONS
+
+
 def read_version_from_text(path: Path) -> str:
     """Read version from a plain text file (e.g. VERSION). Returns first line trimmed."""
     content = path.read_text(encoding="utf-8").strip()
@@ -104,6 +111,25 @@ def write_version_to_xml(path: Path, tree: Et.ElementTree, elem: Et.Element, new
     """Write updated version back to XML file."""
     elem.text = new_version
     tree.write(path, encoding="utf-8", xml_declaration=True)
+
+
+def read_version_from_json(path: Path, key: str) -> tuple[str, dict]:
+    """Read version from a JSON file. Returns (version, parsed_data)."""
+    content = path.read_text(encoding="utf-8")
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        fail(f"Error: Invalid JSON in {path}: {e}")
+    version = data.get(key)
+    if version is None:
+        fail(f"Error: Key '{key}' not found in {path}.")
+    return str(version).strip(), data
+
+
+def write_version_to_json(path: Path, data: dict, key: str, new_version: str) -> None:
+    """Write updated version back to JSON file."""
+    data[key] = new_version
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def get_major_tag(tag: str, prefix: str = "v") -> str:
@@ -134,8 +160,13 @@ def main() -> int:
 
     # Read current version based on file type
     use_xml = is_xml_file(version_file)
+    use_json = is_json_file(version_file)
     if use_xml:
         old_version, (xml_tree, xml_elem) = read_version_from_xml(version_file, version_element)
+    elif use_json:
+        old_version, json_data = read_version_from_json(version_file, version_element)
+        if not validate_version(old_version):
+            fail(f"Error: Invalid version format '{old_version}' in {version_file}. Expected X.Y.Z or X.Y.Z-preview.N")
     else:
         old_version = read_version_from_text(version_file)
         if not validate_version(old_version):
@@ -160,6 +191,8 @@ def main() -> int:
     # Write new version
     if use_xml:
         write_version_to_xml(version_file, xml_tree, xml_elem, new_version)
+    elif use_json:
+        write_version_to_json(version_file, json_data, version_element, new_version)
     else:
         write_version_to_text(version_file, new_version)
 
