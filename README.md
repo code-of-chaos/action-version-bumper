@@ -28,7 +28,7 @@ The action auto-detects file type based on extension:
 | Input                    | Description                                                                                                    | Default               |
 |--------------------------|----------------------------------------------------------------------------------------------------------------|-----------------------|
 | `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''`                  |
-| `version_element`        | XPath expression to locate the version element in XML files, or JSON key for JSON files. Ignored for plain text files | `.//Version`          |
+| `version_element`        | XPath expression for XML files, or dot-separated JSON key path (for example `metadata.version`). Ignored for plain text files | `.//Version` for XML, `version` for JSON |
 | `commit`                 | Whether to commit the version change to the current branch                                                     | `false`               |
 | `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                              | `false`               |
 | `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                | `v`                   |
@@ -106,10 +106,9 @@ Given a `VERSION` file containing `1.0.0`, this produces `1.1.0`.
   with:
     version_file: package.json
     bump: minor
-    version_element: 'version'
 ```
 
-The `version_element` input specifies the JSON key to update. For `package.json`, use `version`. For custom JSON files, use whatever key holds your version.
+The `version_element` input specifies the JSON key path to update. It defaults to `version` for JSON files, so it can be omitted for `package.json`. For nested values, use a dot-separated path such as `metadata.version`.
 
 ### Bump, commit, tag, and push
 
@@ -307,7 +306,7 @@ bump_version.py <bump> <version_file> [version_element] [custom_version] [previe
 |---------------------|-----------------------------------------------------------------------------------|
 | `bump`              | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`                     |
 | `version_file`      | Path to the file containing the version                                           |
-| `version_element`   | XPath to the version element (XML) or JSON key (JSON). Default: `.//Version`/`version` |
+| `version_element`   | XPath to the version element (XML) or dot-separated JSON key path (JSON). Defaults to `.//Version`/`version` by file type |
 | `custom_version`    | Version string when bump type is `custom`                                         |
 | `preview_label`     | Label for preview versions. Default: `preview`                                    |
 | `preview_separator` | Separator between label and number. Default: `.`                                  |
@@ -324,7 +323,7 @@ The action uses file extension to determine how to read/write the version:
 
 For plain text files, the file must contain only the version string (with optional trailing newline).
 
-For JSON files, the `version_element` input specifies which key to read/write. For `package.json`, use `version`.
+For JSON files, the `version_element` input specifies which key path to read/write. For `package.json`, it defaults to `version`; nested paths such as `metadata.version` are also supported.
 
 ## Running Tests
 

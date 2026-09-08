@@ -87,6 +87,24 @@ def test_main_custom_key_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert data["appVersion"] == "2.5.1"
 
 
+def test_main_defaults_to_version_key_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_json_version_file(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf)])
+
+    assert bv.main() == 0
+
+    assert json.loads(vf.read_text(encoding="utf-8"))["version"] == "1.0.1"
+
+
+def test_main_nested_json_key_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_json_version_file(tmp_path, '{"metadata": {"version": "2.5.0"}}')
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf), "metadata.version"])
+
+    assert bv.main() == 0
+
+    assert json.loads(vf.read_text(encoding="utf-8"))["metadata"]["version"] == "2.5.1"
+
+
 def test_main_json_preserves_other_fields(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     vf = _write_json_version_file(tmp_path)
     monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf), "version"])
@@ -109,5 +127,12 @@ def test_main_missing_json_key_fails(tmp_path: Path, monkeypatch: pytest.MonkeyP
 def test_main_invalid_json_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     vf = _write_json_version_file(tmp_path, '{"name": "broken", "version":')
     monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf), "version"])
+    with pytest.raises(SystemExit):
+        bv.main()
+
+
+def test_main_json_array_root_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    vf = _write_json_version_file(tmp_path, "[]")
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "patch", str(vf)])
     with pytest.raises(SystemExit):
         bv.main()

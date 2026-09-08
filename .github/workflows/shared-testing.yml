@@ -121,3 +121,34 @@ jobs:
                     [ "${{ steps.bump.outputs.version }}" = "${{ matrix.expected_new }}" ] || exit 1
                     [ "${{ steps.bump.outputs.old_version }}" = "1.0.0" ] || exit 1
                     [ "${{ steps.bump.outputs.tag }}" = "v${{ matrix.expected_new }}" ] || exit 1
+
+    action-test-json:
+        name: "CI: action/json"
+        if: ${{ inputs.run_action_tests }}
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v7
+
+            - name: Create test package.json
+              run: |
+                  cat > package.json << 'EOF'
+                  {
+                    "name": "test-package",
+                    "version": "1.2.3",
+                    "description": "JSON integration test"
+                  }
+                  EOF
+
+            - name: Test action
+              id: bump
+              uses: ./
+              with:
+                  version_file: package.json
+                  bump: patch
+
+            - name: Verify output and JSON
+              run: |
+                  [ "${{ steps.bump.outputs.version }}" = "1.2.4" ] || exit 1
+                  [ "${{ steps.bump.outputs.old_version }}" = "1.2.3" ] || exit 1
+                  python -c "import json; data=json.load(open('package.json')); assert data['version'] == '1.2.4'; assert data['name'] == 'test-package'"

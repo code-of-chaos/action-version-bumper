@@ -18,9 +18,9 @@ inputs:
     required: false
     default: ''
   version_element:
-    description: 'XPath to the version element in XML files, or JSON key path for JSON files. Ignored for plain text files (default: .//Version for XML, version for JSON)'
+    description: 'XPath to the version element in XML files, or dot-separated JSON key path. Defaults to .//Version for XML and version for JSON.'
     required: false
-    default: './/Version'
+    default: ''
   commit:
     description: 'Commit the version change'
     required: false

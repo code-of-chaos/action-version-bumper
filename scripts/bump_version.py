@@ -8,6 +8,10 @@ import sys
 from pathlib import Path
 from typing import Any, Protocol
 
+# Allow this file to be executed directly as well as imported as a package.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from scripts.versioning import BumpPart, bump, fail, validate_version
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -44,7 +48,7 @@ def main() -> int:
 
     part = sys.argv[1].lower()
     version_file = Path(sys.argv[2])
-    version_element = sys.argv[3] if len(sys.argv) > 3 else ".//Version"
+    version_element = sys.argv[3] if len(sys.argv) > 3 else ""
     preview_label = sys.argv[5] if len(sys.argv) > 5 else "preview"
     preview_separator = sys.argv[6] if len(sys.argv) > 6 else "."
 
@@ -52,6 +56,8 @@ def main() -> int:
         fail(f"Error: File not found: {version_file}")
 
     handler = find_handler(version_file)
+    if not version_element:
+        version_element = "version" if handler is json_handler else ".//Version"
 
     # Read current version
     old_version, data = handler.read_version(version_file, version_element)
