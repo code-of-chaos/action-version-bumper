@@ -2,6 +2,12 @@
 
 A reusable GitHub Action for bumping semantic versions in project files. Supports XML files (`.csproj`, `Directory.Build.props`, etc.), JSON files (`package.json`, etc.), and plain text files (`VERSION`, `.version`, etc.).
 
+## Version 2 Migration
+
+Version 2 removes the ambiguous `floating_tag` output. Use `floating_major_tag` and/or `floating_minor_tag` instead. Both floating tag inputs can be enabled together.
+
+The reusable release workflow now exposes `floating_major_tag` and `floating_minor_tag` to its callers and enables both floating tag levels by default. See [CHANGELOG.md](CHANGELOG.md) for the complete v2 migration summary.
+
 ## How It Works
 
 1. Reads the current version from the specified file
@@ -25,27 +31,29 @@ The action auto-detects file type based on extension:
 
 ### Optional
 
-| Input                    | Description                                                                                                                   | Default                                  |
-|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|------------------------------------------|
-| `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N`                | `''`                                     |
-| `version_element`        | XPath expression for XML files, or dot-separated JSON key path (for example `metadata.version`). Ignored for plain text files | `.//Version` for XML, `version` for JSON |
-| `commit`                 | Whether to commit the version change to the current branch                                                                    | `false`                                  |
-| `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                                             | `false`                                  |
-| `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                               | `v`                                      |
-| `commit_message`         | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                                | `VersionBump : {tag}`                    |
-| `push`                   | Whether to push the commit and tag to the remote origin                                                                       | `false`                                  |
-| `floating_major_version` | Create/update a floating major version tag (e.g. `v1` for `v1.2.0`). Requires `tag` to be `true`.                             | `false`                                  |
-| `preview_label`          | Label for preview versions. E.g. `BETA` for `1.0.1-BETA-1`                                                                    | `preview`                                |
-| `preview_separator`      | Separator between label and number. E.g. `-` for `1.0.1-BETA-1`                                                               | `.`                                      |
+| Input                    | Description                                                                                                                                           | Default                                  |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------|
+| `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N`                                        | `''`                                     |
+| `version_element`        | XPath expression for XML files, or dot-separated JSON key path (for example `metadata.version`). Ignored for plain text files                         | `.//Version` for XML, `version` for JSON |
+| `commit`                 | Whether to commit the version change to the current branch                                                                                            | `false`                                  |
+| `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                                                                     | `false`                                  |
+| `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                                                       | `v`                                      |
+| `commit_message`         | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                                                        | `VersionBump : {tag}`                    |
+| `push`                   | Whether to push the commit and tag to the remote origin                                                                                               | `false`                                  |
+| `floating_major_version` | Create/update a floating major version tag (e.g. `v1` for `v1.2.0`). Requires `tag` to be `true`.                                                     | `false`                                  |
+| `floating_minor_version` | Create/update a floating minor version tag (e.g. `v1.2` for `v1.2.0`). Requires `tag` to be `true`. | `false`                                  |
+| `preview_label`          | Label for preview versions. E.g. `BETA` for `1.0.1-BETA-1`                                                                                            | `preview`                                |
+| `preview_separator`      | Separator between label and number. E.g. `-` for `1.0.1-BETA-1`                                                                                       | `.`                                      |
 
 ## Outputs
 
-| Output         | Description                                                                  | Example  |
-|----------------|------------------------------------------------------------------------------|----------|
-| `version`      | The new version string after bumping                                         | `1.2.0`  |
-| `old_version`  | The previous version string before bumping                                   | `1.1.3`  |
-| `tag`          | The full git tag name (prefix + version)                                     | `v1.2.0` |
-| `floating_tag` | The floating major version tag name (if `floating_major_version` is enabled) | `v1`     |
+| Output         | Description                                               | Example        |
+|----------------|-----------------------------------------------------------|----------------|
+| `version`      | The new version string after bumping                      | `1.2.0`        |
+| `old_version`  | The previous version string before bumping                | `1.1.3`        |
+| `tag`          | The full git tag name (prefix + version)                  | `v1.2.0`       |
+| `floating_major_tag` | The floating major version tag name, if enabled | `v1` |
+| `floating_minor_tag` | The floating minor version tag name, if enabled | `v1.2` |
 
 ## Version Format
 
@@ -82,7 +90,7 @@ When bumping a version that already has a preview suffix:
 ### VERSION file (plain text)
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -93,7 +101,7 @@ Given a `VERSION` file containing `1.0.0`, this produces `1.1.0`.
 ### Directory.Build.props (XML)
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: src/Directory.Build.props
     bump: minor
@@ -102,7 +110,7 @@ Given a `VERSION` file containing `1.0.0`, this produces `1.1.0`.
 ### package.json (JSON)
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: package.json
     bump: minor
@@ -113,7 +121,7 @@ The `version_element` input specifies the JSON key path to update. It defaults t
 ### Bump, commit, tag, and push
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -125,7 +133,7 @@ The `version_element` input specifies the JSON key path to update. It defaults t
 ### Set a custom version
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: custom
@@ -139,7 +147,7 @@ The `version_element` input specifies the JSON key path to update. It defaults t
 If your version is stored in a non-standard element:
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: src/MyProject.csproj
     bump: patch
@@ -149,7 +157,7 @@ If your version is stored in a non-standard element:
 ### Custom tag prefix
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: patch
@@ -164,7 +172,7 @@ This creates tags like `release-1.2.3` instead of `v1.2.3`.
 Use a custom label and separator for preview versions (e.g. for Obsidian beta releases):
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: preview
@@ -177,7 +185,7 @@ This produces versions like `1.0.0-BETA-1` instead of `1.0.0-preview.1`.
 ### Custom commit message
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: patch
@@ -190,24 +198,42 @@ This produces versions like `1.0.0-BETA-1` instead of `1.0.0-preview.1`.
 Automatically maintain a floating major version tag (e.g. `v1`) that always points to the latest `v1.x.x` release:
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
     commit: 'true'
     tag: 'true'
-    push: 'true'
-    floating_major_version: 'true'
+           push: 'true'
+           floating_major_version: 'true'
+           floating_minor_version: 'true'
 ```
 
 When releasing `v1.2.0`, this also updates `v1` to point to the same commit. Users can then reference `@v1` in their workflows to always get the latest `v1.x.x` release.
+
+### Floating minor version tag
+
+Use `floating_minor_version` to maintain a floating minor tag (e.g. `v1.2`) that points to the latest `v1.2.x` release:
+
+```yaml
+- uses: Code-Of-Chaos/action-version-bumper@v2
+  with:
+    version_file: VERSION
+    bump: patch
+    commit: 'true'
+    tag: 'true'
+    push: 'true'
+    floating_minor_version: 'true'
+```
+
+When releasing `v1.2.1`, this also updates `v1.2` to point to the same commit. Both floating options can be enabled together to update both tags.
 
 ### Use outputs in downstream steps
 
 ```yaml
 - name: Bump version
   id: version
-  uses: Code-Of-Chaos/action-version-bumper@v1
+  uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -252,7 +278,7 @@ jobs:
 
       - name: Bump version
         id: version
-        uses: Code-Of-Chaos/action-version-bumper@v1
+        uses: Code-Of-Chaos/action-version-bumper@v2
         with:
           version_file: VERSION
           bump: ${{ inputs.bump }}

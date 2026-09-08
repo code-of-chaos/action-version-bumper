@@ -55,6 +55,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
 
             - name: Create test files
               run: |
@@ -72,6 +74,8 @@ jobs:
                     "description": "JSON integration test"
                   }
                   EOF
+                  echo "9.8.7" > floating.VERSION
+                  echo "9.8.7" > floating-minor.VERSION
 
             - name: Test plain text action
               id: bump_text
@@ -98,6 +102,27 @@ jobs:
                   bump: ${{ matrix.bump }}
                   custom_version: ${{ matrix.custom_version || '' }}
 
+            - name: Test floating major tag
+              if: matrix.bump == 'patch'
+              id: bump_floating
+              uses: ./
+              with:
+                  version_file: floating.VERSION
+                  bump: patch
+                  tag: 'true'
+                  floating_major_version: 'true'
+                  floating_minor_version: 'true'
+
+            - name: Test floating minor tag
+              if: matrix.bump == 'patch'
+              id: bump_floating_minor
+              uses: ./
+              with:
+                  version_file: floating-minor.VERSION
+                  bump: patch
+                  tag: 'true'
+                  floating_minor_version: 'true'
+
             - name: Verify all file types
               run: |
                   [ "${{ steps.bump_text.outputs.version }}" = "${{ matrix.expected_version }}" ] || exit 1
@@ -112,3 +137,72 @@ jobs:
                   grep -q "${{ matrix.expected_version }}" VERSION
                   grep -q "<Version>${{ matrix.expected_version }}</Version>" Directory.Build.props
                   python -c "import json; data=json.load(open('package.json')); assert data['version'] == '${{ matrix.expected_version }}'; assert data['name'] == 'test-package'"
+
+            - name: Verify floating major tag
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_floating.outputs.version }}" = "9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.tag }}" = "v9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.floating_major_tag }}" = "v9" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.floating_minor_tag }}" = "v9.8" ] || exit 1
+                  test "$(git rev-parse refs/tags/v9.8.8)" = "$(git rev-parse HEAD)"
+                  test "$(git rev-parse refs/tags/v9)" = "$(git rev-parse HEAD)"
+                  test "$(git rev-parse refs/tags/v9.8)" = "$(git rev-parse HEAD)"
+
+            - name: Verify floating minor tag
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_floating_minor.outputs.version }}" = "9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating_minor.outputs.tag }}" = "v9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating_minor.outputs.floating_minor_tag }}" = "v9.8" ] || exit 1
+                  test "$(git rev-parse refs/tags/v9.8)" = "$(git rev-parse HEAD)"
+
+            - name: Configure local remote for push test
+              if: matrix.bump == 'patch'
+              run: |
+                  git init --bare "$RUNNER_TEMP/version-bumper-remote.git"
+                  git remote set-url origin "$RUNNER_TEMP/version-bumper-remote.git"
+                  echo "9.7.0" > remote.VERSION
+
+            - name: Test remote push and floating tag update
+              if: matrix.bump == 'patch'
+              id: bump_remote_first
+              uses: ./
+              with:
+                  version_file: remote.VERSION
+                  bump: patch
+                  commit: 'true'
+                  tag: 'true'
+                  push: 'true'
+                  floating_major_version: 'true'
+                  floating_minor_version: 'true'
+
+            - name: Capture first floating tag revision
+              if: matrix.bump == 'patch'
+              run: echo "first_floating_sha=$(git ls-remote origin refs/tags/v9 | cut -f1)" >> "$GITHUB_ENV"
+
+            - name: Test remote floating tag force update
+              if: matrix.bump == 'patch'
+              id: bump_remote_second
+              uses: ./
+              with:
+                  version_file: remote.VERSION
+                  bump: patch
+                  commit: 'true'
+                  tag: 'true'
+                  push: 'true'
+                  floating_major_version: 'true'
+                  floating_minor_version: 'true'
+
+            - name: Verify remote tags
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_remote_first.outputs.version }}" = "9.7.1" ] || exit 1
+                  [ "${{ steps.bump_remote_second.outputs.version }}" = "9.7.2" ] || exit 1
+                  [ "${{ steps.bump_remote_second.outputs.floating_major_tag }}" = "v9" ] || exit 1
+                  [ "${{ steps.bump_remote_second.outputs.floating_minor_tag }}" = "v9.7" ] || exit 1
+                  git ls-remote --exit-code origin refs/tags/v9.7.2
+                  git ls-remote --exit-code origin refs/tags/v9
+                  git ls-remote --exit-code origin refs/tags/v9.7
+                  second_floating_sha="$(git ls-remote origin refs/tags/v9 | cut -f1)"
+                  test "$first_floating_sha" != "$second_floating_sha"

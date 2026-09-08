@@ -18,6 +18,12 @@ on:
             tag_name:
                 description: 'Created git tag name'
                 value: ${{ jobs.bump-version.outputs.tag_name }}
+            floating_major_tag:
+                description: 'Floating major version tag name'
+                value: ${{ jobs.bump-version.outputs.floating_major_tag }}
+            floating_minor_tag:
+                description: 'Floating minor version tag name'
+                value: ${{ jobs.bump-version.outputs.floating_minor_tag }}
 
 jobs:
     bump-version:
@@ -28,6 +34,8 @@ jobs:
         outputs:
             new_version: ${{ steps.version-bumper.outputs.version }}
             tag_name: ${{ steps.version-bumper.outputs.tag }}
+            floating_major_tag: ${{ steps.version-bumper.outputs.floating_major_tag }}
+            floating_minor_tag: ${{ steps.version-bumper.outputs.floating_minor_tag }}
 
         steps:
             -   name: Checkout
@@ -47,3 +55,4 @@ jobs:
                     tag: 'true'
                     push: 'true'
                     floating_major_version: 'true'
+                    floating_minor_version: 'true'

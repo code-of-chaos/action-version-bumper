@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.versioning import bump, validate_version, get_major_tag
+from scripts.versioning import bump, validate_version, get_major_tag, get_minor_tag
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Tests
@@ -112,3 +112,17 @@ def test_validate_version_with_custom_label(version: str, expected: bool) -> Non
 )
 def test_get_major_tag(tag: str, prefix: str, expected: str) -> None:
     assert get_major_tag(tag, prefix) == expected
+
+
+@pytest.mark.parametrize(
+    ("tag", "prefix", "expected"),
+    [
+        ("v1.2.3", "v", "v1.2"),
+        ("v1.2.3-preview.1", "v", "v1.2"),
+        ("v10.20.30", "v", "v10.20"),
+        ("release-1.2.3", "release-", "release-1.2"),
+        ("1.2.3", "", "1.2"),
+    ],
+)
+def test_get_minor_tag(tag: str, prefix: str, expected: str) -> None:
+    assert get_minor_tag(tag, prefix) == expected
