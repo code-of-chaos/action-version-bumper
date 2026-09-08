@@ -88,7 +88,7 @@ When bumping a version that already has a preview suffix:
 ### VERSION file (plain text)
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -99,7 +99,7 @@ Given a `VERSION` file containing `1.0.0`, this produces `1.1.0`.
 ### Directory.Build.props (XML)
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: src/Directory.Build.props
     bump: minor
@@ -108,7 +108,7 @@ Given a `VERSION` file containing `1.0.0`, this produces `1.1.0`.
 ### package.json (JSON)
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: package.json
     bump: minor
@@ -119,7 +119,7 @@ The `version_element` input specifies the JSON key path to update. It defaults t
 ### Bump, commit, tag, and push
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -131,7 +131,7 @@ The `version_element` input specifies the JSON key path to update. It defaults t
 ### Set a custom version
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: custom
@@ -145,7 +145,7 @@ The `version_element` input specifies the JSON key path to update. It defaults t
 If your version is stored in a non-standard element:
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: src/MyProject.csproj
     bump: patch
@@ -155,7 +155,7 @@ If your version is stored in a non-standard element:
 ### Custom tag prefix
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: patch
@@ -170,7 +170,7 @@ This creates tags like `release-1.2.3` instead of `v1.2.3`.
 Use a custom label and separator for preview versions (e.g. for Obsidian beta releases):
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: preview
@@ -183,7 +183,7 @@ This produces versions like `1.0.0-BETA-1` instead of `1.0.0-preview.1`.
 ### Custom commit message
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: patch
@@ -196,7 +196,7 @@ This produces versions like `1.0.0-BETA-1` instead of `1.0.0-preview.1`.
 Automatically maintain a floating major version tag (e.g. `v1`) that always points to the latest `v1.x.x` release:
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -213,7 +213,7 @@ When releasing `v1.2.0`, this also updates `v1` to point to the same commit. Use
 Use `floating_minor_version` to maintain a floating minor tag (e.g. `v1.2`) that points to the latest `v1.2.x` release:
 
 ```yaml
-- uses: Code-Of-Chaos/action-version-bumper@v1
+- uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: patch
@@ -230,7 +230,7 @@ When releasing `v1.2.1`, this also updates `v1.2` to point to the same commit. B
 ```yaml
 - name: Bump version
   id: version
-  uses: Code-Of-Chaos/action-version-bumper@v1
+  uses: Code-Of-Chaos/action-version-bumper@v2
   with:
     version_file: VERSION
     bump: minor
@@ -275,7 +275,7 @@ jobs:
 
       - name: Bump version
         id: version
-        uses: Code-Of-Chaos/action-version-bumper@v1
+        uses: Code-Of-Chaos/action-version-bumper@v2
         with:
           version_file: VERSION
           bump: ${{ inputs.bump }}

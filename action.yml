@@ -46,7 +46,7 @@ inputs:
     required: false
     default: 'false'
   floating_minor_version:
-    description: 'Create/update a floating minor version tag (e.g. v1.2 for v1.2.0). Requires tag to be true. Cannot be used with floating_major_version.'
+    description: 'Create/update a floating minor version tag (e.g. v1.2 for v1.2.0). Requires tag to be true.'
     required: false
     default: 'false'
   preview_label:
