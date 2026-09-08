@@ -154,7 +154,7 @@ runs:
         fi
 
         if [ "${{ inputs.push }}" == "true" ]; then
-          git push origin HEAD:${{ github.ref_name }}
+          git push origin HEAD:refs/heads/${{ github.ref_name }}
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             git push origin "$TAG"
           fi
