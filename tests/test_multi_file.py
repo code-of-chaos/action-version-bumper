@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-import scripts.bump_version as bv
+import src.bump_version as bv
 
 
 def test_one_calculated_version_applies_to_all_supported_additional_files(

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-import scripts.bump_version as bv
+import src.bump_version as bv
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Helpers

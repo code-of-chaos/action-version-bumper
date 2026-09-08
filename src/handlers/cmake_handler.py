@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Final
 
-from scripts.versioning import fail
+from src.versioning import fail
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Constants

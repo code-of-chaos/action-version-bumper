@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-import scripts.bump_version as bv
+import src.bump_version as bv
 
 
 def _write_cmake_file(tmp_path: Path, content: str) -> Path:

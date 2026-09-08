@@ -12,7 +12,7 @@ from typing import Any, Protocol
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.versioning import BumpPart, bump, fail, validate_version
+from src.versioning import BumpPart, bump, fail, validate_version
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Handler interface
@@ -26,7 +26,7 @@ class Handler(Protocol):
 # ---------------------------------------------------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------------------------------------------------
-from scripts import cmake_handler, text_handler, xml_handler, json_handler
+from src.handlers import cmake_handler, text_handler, xml_handler, json_handler
 
 HANDLERS: list[Handler] = [xml_handler, json_handler, cmake_handler, text_handler]
 
