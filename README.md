@@ -334,4 +334,4 @@ pytest tests/ -v
 
 ## License
 
-MIT
+GPL v3
