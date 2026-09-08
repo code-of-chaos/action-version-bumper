@@ -6,6 +6,8 @@ A reusable GitHub Action for bumping semantic versions in project files. Support
 
 Version 2 removes the ambiguous `floating_tag` output. Use `floating_major_tag` and/or `floating_minor_tag` instead. Both floating tag inputs can be enabled together.
 
+The reusable release workflow now exposes `floating_major_tag` and `floating_minor_tag` to its callers and enables both floating tag levels by default. See [CHANGELOG.md](CHANGELOG.md) for the complete v2 migration summary.
+
 ## How It Works
 
 1. Reads the current version from the specified file
@@ -202,8 +204,9 @@ Automatically maintain a floating major version tag (e.g. `v1`) that always poin
     bump: minor
     commit: 'true'
     tag: 'true'
-    push: 'true'
-    floating_major_version: 'true'
+           push: 'true'
+           floating_major_version: 'true'
+           floating_minor_version: 'true'
 ```
 
 When releasing `v1.2.0`, this also updates `v1` to point to the same commit. Users can then reference `@v1` in their workflows to always get the latest `v1.x.x` release.
