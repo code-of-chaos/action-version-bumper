@@ -28,7 +28,8 @@ jobs:
                 run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
 
             -   name: Lint GitHub Actions
-                run: "$HOME/go/bin/actionlint"
+                run: |
+                    "$HOME/go/bin/actionlint"
 
     python-tests:
         name: "CI: python"
@@ -240,7 +241,7 @@ jobs:
               run: |
                   [ "${{ steps.bump_failure.outcome }}" = "failure" ] || exit 1
                   git diff --cached --quiet
-                  ! git tag -l "v8.0.1" | grep -q .
+                  if git tag -l "v8.0.1" | grep -q .; then exit 1; fi
                   if git ls-remote --exit-code origin refs/tags/v8.0.1; then exit 1; fi
 
             - name: Test remote push and floating tag update
