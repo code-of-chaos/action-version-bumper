@@ -159,6 +159,7 @@ jobs:
               if: matrix.bump == 'patch'
               run: |
                   git init --bare "$RUNNER_TEMP/version-bumper-remote.git"
+                  git -C "$RUNNER_TEMP/version-bumper-remote.git" config receive.shallowUpdateAllowed true
                   git remote set-url origin "$RUNNER_TEMP/version-bumper-remote.git"
                   echo "9.7.0" > remote.VERSION
 
