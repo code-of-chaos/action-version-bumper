@@ -76,6 +76,15 @@ jobs:
                   EOF
                   echo "9.8.7" > floating.VERSION
                   echo "9.8.7" > floating-minor.VERSION
+                  echo "3.0.0" > multi.VERSION
+                  mkdir -p multi
+                  cat > multi/Directory.Build.props << 'EOF'
+                  <Project><PropertyGroup><Version>3.0.0</Version></PropertyGroup></Project>
+                  EOF
+                  cat > multi/package.json << 'EOF'
+                  {"name":"multi-test","version":"3.0.0"}
+                  EOF
+                  echo 'project(Multi VERSION 3.0.0)' > multi/CMakeLists.txt
 
             - name: Test plain text action
               id: bump_text
@@ -101,6 +110,18 @@ jobs:
                   version_file: package.json
                   bump: ${{ matrix.bump }}
                   custom_version: ${{ matrix.custom_version || '' }}
+
+            - name: Test additional version files
+              if: matrix.bump == 'patch'
+              id: bump_additional
+              uses: ./
+              with:
+                  version_file: multi.VERSION
+                  bump: patch
+                  additional_version_files: |
+                      multi/Directory.Build.props
+                      multi/package.json
+                      multi/CMakeLists.txt
 
             - name: Test floating major tag
               if: matrix.bump == 'patch'
@@ -137,6 +158,16 @@ jobs:
                   grep -q "${{ matrix.expected_version }}" VERSION
                   grep -q "<Version>${{ matrix.expected_version }}</Version>" Directory.Build.props
                   python -c "import json; data=json.load(open('package.json')); assert data['version'] == '${{ matrix.expected_version }}'; assert data['name'] == 'test-package'"
+
+            - name: Verify additional version files
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_additional.outputs.version }}" = "3.0.1" ] || exit 1
+                  [ "${{ steps.bump_additional.outputs.old_version }}" = "3.0.0" ] || exit 1
+                  grep -q "3.0.1" multi.VERSION
+                  grep -q "<Version>3.0.1</Version>" multi/Directory.Build.props
+                  python -c "import json; assert json.load(open('multi/package.json'))['version'] == '3.0.1'"
+                  grep -q "VERSION 3.0.1" multi/CMakeLists.txt
 
             - name: Verify floating major tag
               if: matrix.bump == 'patch'
