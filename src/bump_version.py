@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -12,7 +13,7 @@ from typing import Any, Protocol
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scripts.versioning import BumpPart, bump, fail, validate_version
+from src.versioning import BumpPart, bump, fail, validate_version
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Handler interface
@@ -26,15 +27,17 @@ class Handler(Protocol):
 # ---------------------------------------------------------------------------------------------------------------------
 # Handlers
 # ---------------------------------------------------------------------------------------------------------------------
-from scripts import text_handler, xml_handler, json_handler
+from src.handlers import cmake_handler, text_handler, xml_handler, json_handler
 
-HANDLERS: list[Handler] = [xml_handler, json_handler, text_handler]
+HANDLERS: list[Handler] = [xml_handler, json_handler, cmake_handler, text_handler]
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Code
 # ---------------------------------------------------------------------------------------------------------------------
 def find_handler(version_file: Path) -> Handler:
-    """Find the matching handler by file extension. Text handler is the fallback."""
+    """Find the matching handler by filename or extension. Text is the fallback."""
+    if cmake_handler.is_cmake_file(version_file):
+        return cmake_handler
     suffix = version_file.suffix.lower()
     for handler in HANDLERS:
         if suffix in handler.EXTENSIONS:
@@ -42,7 +45,40 @@ def find_handler(version_file: Path) -> Handler:
     return text_handler
 
 
+def default_element(handler: Handler) -> str:
+    if handler is json_handler:
+        return "version"
+    if handler is cmake_handler:
+        return ""
+    return ".//Version"
+
+
+def set_version(path: Path, new_version: str, element: str = "") -> None:
+    """Apply an already-calculated version to one file without bumping it."""
+    if os.environ.get("VERSION_BUMPER_REQUIRE_RELATIVE_PATHS") == "true":
+        if path.is_absolute() or ".." in path.parts:
+            fail(f"Error: Additional version file must be repository-relative: {path}")
+        workspace = os.environ.get("GITHUB_WORKSPACE")
+        if workspace and not (Path.cwd() / path).resolve().is_relative_to(Path(workspace).resolve()):
+            fail(f"Error: Additional version file must be inside GITHUB_WORKSPACE: {path}")
+    if not path.exists():
+        fail(f"Error: File not found: {path}")
+
+    handler = find_handler(path)
+    element = element or default_element(handler)
+    old_version, data = handler.read_version(path, element)
+    if not validate_version(old_version):
+        fail(f"Error: Invalid version format '{old_version}' in {path}.")
+    if not validate_version(new_version):
+        fail(f"Error: Invalid version format '{new_version}'.")
+    handler.write_version(path, data, element, new_version)
+
+
 def main() -> int:
+    if len(sys.argv) >= 4 and sys.argv[1] == "--set-version":
+        set_version(Path(sys.argv[2]), sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else "")
+        return 0
+
     if len(sys.argv) < 3:
         fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]")
 
@@ -57,7 +93,7 @@ def main() -> int:
 
     handler = find_handler(version_file)
     if not version_element:
-        version_element = "version" if handler is json_handler else ".//Version"
+        version_element = default_element(handler)
 
     # Read current version
     old_version, data = handler.read_version(version_file, version_element)

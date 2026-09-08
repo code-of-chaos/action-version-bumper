@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.versioning import bump, validate_version, get_major_tag, get_minor_tag
+from src.versioning import bump, validate_version, get_major_tag, get_minor_tag
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Tests

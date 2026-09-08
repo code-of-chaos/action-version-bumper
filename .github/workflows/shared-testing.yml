@@ -76,6 +76,15 @@ jobs:
                   EOF
                   echo "9.8.7" > floating.VERSION
                   echo "9.8.7" > floating-minor.VERSION
+                  echo "3.0.0" > multi.VERSION
+                  mkdir -p multi
+                  cat > multi/Directory.Build.props << 'EOF'
+                  <Project><PropertyGroup><Version>3.0.0</Version></PropertyGroup></Project>
+                  EOF
+                  cat > multi/package.json << 'EOF'
+                  {"name":"multi-test","version":"3.0.0"}
+                  EOF
+                  echo 'project(Multi VERSION 3.0.0)' > multi/CMakeLists.txt
 
             - name: Test plain text action
               id: bump_text
@@ -101,6 +110,18 @@ jobs:
                   version_file: package.json
                   bump: ${{ matrix.bump }}
                   custom_version: ${{ matrix.custom_version || '' }}
+
+            - name: Test additional version files
+              if: matrix.bump == 'patch'
+              id: bump_additional
+              uses: ./
+              with:
+                  version_file: multi.VERSION
+                  bump: patch
+                  additional_version_files: |
+                      multi/Directory.Build.props
+                      multi/package.json
+                      multi/CMakeLists.txt
 
             - name: Test floating major tag
               if: matrix.bump == 'patch'
@@ -138,6 +159,16 @@ jobs:
                   grep -q "<Version>${{ matrix.expected_version }}</Version>" Directory.Build.props
                   python -c "import json; data=json.load(open('package.json')); assert data['version'] == '${{ matrix.expected_version }}'; assert data['name'] == 'test-package'"
 
+            - name: Verify additional version files
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_additional.outputs.version }}" = "3.0.1" ] || exit 1
+                  [ "${{ steps.bump_additional.outputs.old_version }}" = "3.0.0" ] || exit 1
+                  grep -q "3.0.1" multi.VERSION
+                  grep -q "<Version>3.0.1</Version>" multi/Directory.Build.props
+                  python -c "import json; assert json.load(open('multi/package.json'))['version'] == '3.0.1'"
+                  grep -q "VERSION 3.0.1" multi/CMakeLists.txt
+
             - name: Verify floating major tag
               if: matrix.bump == 'patch'
               run: |
@@ -163,6 +194,36 @@ jobs:
                   git init --bare "$RUNNER_TEMP/version-bumper-remote.git"
                   git remote set-url origin "$RUNNER_TEMP/version-bumper-remote.git"
                   echo "9.7.0" > remote.VERSION
+                  mkdir -p remote
+                  cat > remote/Directory.Build.props << 'EOF'
+                  <Project><PropertyGroup><Version>9.7.0</Version></PropertyGroup></Project>
+                  EOF
+                  cat > remote/package.json << 'EOF'
+                  {"name":"remote-test","version":"9.7.0"}
+                  EOF
+                  echo 'project(Remote VERSION 9.7.0)' > remote/CMakeLists.txt
+                  echo "8.0.0" > remote-failure.VERSION
+
+            - name: Verify additional-file failure stops before Git operations
+              if: matrix.bump == 'patch'
+              id: bump_failure
+              continue-on-error: true
+              uses: ./
+              with:
+                  version_file: remote-failure.VERSION
+                  bump: patch
+                  commit: 'true'
+                  tag: 'true'
+                  push: 'true'
+                  additional_version_files: missing-additional.VERSION
+
+            - name: Verify additional-file failure boundary
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_failure.outcome }}" = "failure" ] || exit 1
+                  git diff --cached --quiet
+                  ! git tag -l "v8.0.1" | grep -q .
+                  ! git ls-remote --exit-code origin refs/tags/v8.0.1
 
             - name: Test remote push and floating tag update
               if: matrix.bump == 'patch'
@@ -176,6 +237,19 @@ jobs:
                   push: 'true'
                   floating_major_version: 'true'
                   floating_minor_version: 'true'
+                  additional_version_files: |
+                      remote/Directory.Build.props
+                      remote/package.json
+                      remote/CMakeLists.txt
+
+            - name: Verify first multi-file commit
+              if: matrix.bump == 'patch'
+              run: |
+                  test "$(git diff-tree --no-commit-id --name-only -r HEAD | wc -l | tr -d ' ')" = "4"
+                  git diff-tree --no-commit-id --name-only -r HEAD | grep -q '^remote.VERSION$'
+                  git diff-tree --no-commit-id --name-only -r HEAD | grep -q '^remote/Directory.Build.props$'
+                  git diff-tree --no-commit-id --name-only -r HEAD | grep -q '^remote/package.json$'
+                  git diff-tree --no-commit-id --name-only -r HEAD | grep -q '^remote/CMakeLists.txt$'
 
             - name: Capture first floating tag revision
               if: matrix.bump == 'patch'
@@ -193,6 +267,10 @@ jobs:
                   push: 'true'
                   floating_major_version: 'true'
                   floating_minor_version: 'true'
+                  additional_version_files: |
+                      remote/Directory.Build.props
+                      remote/package.json
+                      remote/CMakeLists.txt
 
             - name: Verify remote tags
               if: matrix.bump == 'patch'
@@ -206,3 +284,4 @@ jobs:
                   git ls-remote --exit-code origin refs/tags/v9.7
                   second_floating_sha="$(git ls-remote origin refs/tags/v9 | cut -f1)"
                   test "$first_floating_sha" != "$second_floating_sha"
+                  test "$(git diff-tree --no-commit-id --name-only -r HEAD | wc -l | tr -d ' ')" = "4"

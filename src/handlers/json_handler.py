@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any, Final
 
-from scripts.versioning import fail
+from src.versioning import fail
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Constants

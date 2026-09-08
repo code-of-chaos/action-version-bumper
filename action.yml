@@ -18,7 +18,11 @@ inputs:
     required: false
     default: ''
   version_element:
-    description: 'XPath to the version element in XML files, or dot-separated JSON key path. Defaults to .//Version for XML and version for JSON.'
+    description: 'XPath for XML files or dot-separated JSON key path. CMakeLists.txt uses project(... VERSION ...), and this input applies only to the canonical version_file.'
+    required: false
+    default: ''
+  additional_version_files:
+    description: 'Optional newline-separated repository-relative files to update to the calculated version. Uses each file type default location; version_element applies only to version_file.'
     required: false
     default: ''
   commit:
@@ -86,6 +90,9 @@ runs:
     - name: Bump Version
       id: bump
       shell: bash
+      env:
+        ADDITIONAL_VERSION_FILES: ${{ inputs.additional_version_files }}
+        VERSION_BUMPER_REQUIRE_RELATIVE_PATHS: 'true'
       run: |
         set -euo pipefail
 
@@ -108,7 +115,7 @@ runs:
         ARGS+=("$PREVIEW_LABEL")
         ARGS+=("$PREVIEW_SEPARATOR")
 
-        OUTPUT=$(python "${{ github.action_path }}/scripts/bump_version.py" "${ARGS[@]}")
+        OUTPUT=$(python "${{ github.action_path }}/src/bump_version.py" "${ARGS[@]}")
         echo "$OUTPUT"
 
         NEW_VERSION=$(echo "$OUTPUT" | tail -n 1)
@@ -119,9 +126,17 @@ runs:
         echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
         echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
+        while IFS= read -r additional_file; do
+          additional_file="${additional_file%$'\r'}"
+          [ -z "$additional_file" ] && continue
+          python "${{ github.action_path }}/src/bump_version.py" --set-version "$additional_file" "$NEW_VERSION"
+        done <<< "$ADDITIONAL_VERSION_FILES"
+
     - name: Commit and Tag
       if: inputs.commit == 'true' || inputs.tag == 'true' || inputs.push == 'true'
       shell: bash
+      env:
+        ADDITIONAL_VERSION_FILES: ${{ inputs.additional_version_files }}
       run: |
         set -euo pipefail
 
@@ -136,6 +151,11 @@ runs:
 
         if [ "${{ inputs.commit }}" == "true" ]; then
           git add "${{ inputs.version_file }}"
+          while IFS= read -r additional_file; do
+            additional_file="${additional_file%$'\r'}"
+            [ -z "$additional_file" ] && continue
+            git add "$additional_file"
+          done <<< "$ADDITIONAL_VERSION_FILES"
           if ! git diff --cached --quiet; then
             git commit -m "$COMMIT_MSG"
           else
