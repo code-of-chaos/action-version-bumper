@@ -74,38 +74,32 @@ def set_version(path: Path, new_version: str, element: str = "") -> None:
     handler.write_version(path, data, element, new_version)
 
 
-def main() -> int:
-    if len(sys.argv) >= 4 and sys.argv[1] == "--set-version":
-        set_version(Path(sys.argv[2]), sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else "")
-        return 0
-
-    if len(sys.argv) < 3:
-        fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]")
-
-    part = sys.argv[1].lower()
-    version_file = Path(sys.argv[2])
-    version_element = sys.argv[3] if len(sys.argv) > 3 else ""
-    preview_label = sys.argv[5] if len(sys.argv) > 5 else "preview"
-    preview_separator = sys.argv[6] if len(sys.argv) > 6 else "."
-
+def bump_file(
+    part: str,
+    version_file: Path,
+    version_element: str = "",
+    custom_version: str = "",
+    preview_label: str = "preview",
+    preview_separator: str = ".",
+) -> tuple[str, str]:
+    """Bump one file and return ``(old_version, new_version)``."""
     if not version_file.exists():
         fail(f"Error: File not found: {version_file}")
 
     handler = find_handler(version_file)
-    if not version_element:
-        version_element = default_element(handler)
-
-    # Read current version
+    version_element = version_element or default_element(handler)
     old_version, data = handler.read_version(version_file, version_element)
     if not validate_version(old_version, preview_label, preview_separator):
-        fail(f"Error: Invalid version format '{old_version}' in {version_file}. Expected X.Y.Z or X.Y.Z-{preview_label}{preview_separator}N")
+        fail(
+            f"Error: Invalid version format '{old_version}' in {version_file}. "
+            f"Expected X.Y.Z or X.Y.Z-{preview_label}{preview_separator}N"
+        )
 
-    # Calculate new version
+    part = part.lower()
     if part == "custom":
-        if len(sys.argv) < 5:
-            fail("Error: custom version must be provided as the 4th argument")
-
-        new_version = sys.argv[4]
+        if not custom_version:
+            fail("Error: custom_version is required when bump is 'custom'")
+        new_version = custom_version
         if not validate_version(new_version, preview_label, preview_separator):
             fail(
                 f"Error: Invalid version format '{new_version}'. "
@@ -116,8 +110,27 @@ def main() -> int:
             fail(f"Error: Unknown bump part '{part}'")
         new_version = bump(old_version, part, preview_label, preview_separator)
 
-    # Write new version
     handler.write_version(version_file, data, version_element, new_version)
+    return old_version, new_version
+
+
+def main() -> int:
+    if len(sys.argv) >= 4 and sys.argv[1] == "--set-version":
+        set_version(Path(sys.argv[2]), sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else "")
+        return 0
+
+    if len(sys.argv) < 3:
+        fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]")
+
+    part = sys.argv[1]
+    version_file = Path(sys.argv[2])
+    version_element = sys.argv[3] if len(sys.argv) > 3 else ""
+    custom_version = sys.argv[4] if len(sys.argv) > 4 else ""
+    preview_label = sys.argv[5] if len(sys.argv) > 5 else "preview"
+    preview_separator = sys.argv[6] if len(sys.argv) > 6 else "."
+    old_version, new_version = bump_file(
+        part, version_file, version_element, custom_version, preview_label, preview_separator
+    )
 
     print(f"Bumped version: {old_version} -> {new_version}")
     print(new_version)  # Output for GitHub Actions to capture
