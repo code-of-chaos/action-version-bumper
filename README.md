@@ -2,6 +2,10 @@
 
 A reusable GitHub Action for bumping semantic versions in project files. Supports XML files (`.csproj`, `Directory.Build.props`, etc.), JSON files (`package.json`, etc.), and plain text files (`VERSION`, `.version`, etc.).
 
+## Version 2 Migration
+
+Version 2 removes the ambiguous `floating_tag` output. Use `floating_major_tag` and/or `floating_minor_tag` instead. Both floating tag inputs can be enabled together.
+
 ## How It Works
 
 1. Reads the current version from the specified file
@@ -46,7 +50,6 @@ The action auto-detects file type based on extension:
 | `version`      | The new version string after bumping                      | `1.2.0`        |
 | `old_version`  | The previous version string before bumping                | `1.1.3`        |
 | `tag`          | The full git tag name (prefix + version)                  | `v1.2.0`       |
-| `floating_tag` | The floating tag name (major when enabled, otherwise minor) | `v1` or `v1.2` |
 | `floating_major_tag` | The floating major version tag name, if enabled | `v1` |
 | `floating_minor_tag` | The floating minor version tag name, if enabled | `v1.2` |
 

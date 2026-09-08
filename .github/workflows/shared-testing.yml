@@ -141,7 +141,6 @@ jobs:
               run: |
                   [ "${{ steps.bump_floating.outputs.version }}" = "9.8.8" ] || exit 1
                   [ "${{ steps.bump_floating.outputs.tag }}" = "v9.8.8" ] || exit 1
-                  [ "${{ steps.bump_floating.outputs.floating_tag }}" = "v9" ] || exit 1
                   [ "${{ steps.bump_floating.outputs.floating_major_tag }}" = "v9" ] || exit 1
                   [ "${{ steps.bump_floating.outputs.floating_minor_tag }}" = "v9.8" ] || exit 1
                   test "$(git rev-parse refs/tags/v9.8.8)" = "$(git rev-parse HEAD)"
@@ -153,5 +152,5 @@ jobs:
               run: |
                   [ "${{ steps.bump_floating_minor.outputs.version }}" = "9.8.8" ] || exit 1
                   [ "${{ steps.bump_floating_minor.outputs.tag }}" = "v9.8.8" ] || exit 1
-                  [ "${{ steps.bump_floating_minor.outputs.floating_tag }}" = "v9.8" ] || exit 1
+                  [ "${{ steps.bump_floating_minor.outputs.floating_minor_tag }}" = "v9.8" ] || exit 1
                   test "$(git rev-parse refs/tags/v9.8)" = "$(git rev-parse HEAD)"

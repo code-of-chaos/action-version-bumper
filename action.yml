@@ -68,15 +68,12 @@ outputs:
   old_version:
     description: 'The previous version string'
     value: ${{ steps.bump.outputs.old_version }}
-  floating_tag:
-    description: 'The floating tag name (major when enabled, otherwise minor)'
-    value: ${{ steps.floating_tag.outputs.floating_tag }}
   floating_major_tag:
     description: 'The floating major version tag name, if enabled'
-    value: ${{ steps.floating_tag.outputs.floating_major_tag }}
+    value: ${{ steps.floating_tags.outputs.floating_major_tag }}
   floating_minor_tag:
     description: 'The floating minor version tag name, if enabled'
-    value: ${{ steps.floating_tag.outputs.floating_minor_tag }}
+    value: ${{ steps.floating_tags.outputs.floating_minor_tag }}
 
 runs:
   using: 'composite'
@@ -184,8 +181,8 @@ runs:
           fi
         fi
 
-    - name: Output floating tag
-      id: floating_tag
+    - name: Output floating tags
+      id: floating_tags
       shell: bash
       run: |
         set -euo pipefail
@@ -204,15 +201,9 @@ runs:
             MAJOR_MINOR="${VERSION_NO_PREFIX%.*}"
             FLOATING_MINOR_TAG="${TAG_PREFIX}${MAJOR_MINOR}"
           fi
-          FLOATING_TAG="$FLOATING_MAJOR_TAG"
-          if [ -z "$FLOATING_TAG" ]; then
-            FLOATING_TAG="$FLOATING_MINOR_TAG"
-          fi
-          echo "floating_tag=$FLOATING_TAG" >> "$GITHUB_OUTPUT"
           echo "floating_major_tag=$FLOATING_MAJOR_TAG" >> "$GITHUB_OUTPUT"
           echo "floating_minor_tag=$FLOATING_MINOR_TAG" >> "$GITHUB_OUTPUT"
         else
-          echo "floating_tag=" >> "$GITHUB_OUTPUT"
           echo "floating_major_tag=" >> "$GITHUB_OUTPUT"
           echo "floating_minor_tag=" >> "$GITHUB_OUTPUT"
         fi
