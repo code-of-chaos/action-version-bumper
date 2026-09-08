@@ -39,22 +39,20 @@ def bump(version: str, part: BumpPart, preview_label: str = "preview", preview_s
     suffix = f"-{preview_label}{preview_separator}"
     if suffix in version:
         core, preview = version.split(suffix, 1)
-    had_preview = preview is not None
-
     major, minor, patch = map(int, core.split("."))
 
     if part == "major":
         major += 1
         minor = 0
         patch = 0
-        preview = "0" if had_preview else None
+        preview = None
     elif part == "minor":
         minor += 1
         patch = 0
-        preview = "0" if had_preview else None
+        preview = None
     elif part == "patch":
         patch += 1
-        preview = "0" if had_preview else None
+        preview = None
     elif part == "preview":
         if preview is None:
             preview = "1"

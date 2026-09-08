@@ -25,18 +25,18 @@ The action auto-detects file type based on extension:
 
 ### Optional
 
-| Input                    | Description                                                                                                    | Default               |
-|--------------------------|----------------------------------------------------------------------------------------------------------------|-----------------------|
-| `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N` | `''`                  |
+| Input                    | Description                                                                                                                   | Default                                  |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|------------------------------------------|
+| `custom_version`         | Exact version string to set. Only used when `bump` is `custom`. Must match format `X.Y.Z` or `X.Y.Z-preview.N`                | `''`                                     |
 | `version_element`        | XPath expression for XML files, or dot-separated JSON key path (for example `metadata.version`). Ignored for plain text files | `.//Version` for XML, `version` for JSON |
-| `commit`                 | Whether to commit the version change to the current branch                                                     | `false`               |
-| `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                              | `false`               |
-| `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                | `v`                   |
-| `commit_message`         | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                 | `VersionBump : {tag}` |
-| `push`                   | Whether to push the commit and tag to the remote origin                                                        | `false`               |
-| `floating_major_version` | Create/update a floating major version tag (e.g. `v1` for `v1.2.0`). Requires `tag` to be `true`.              | `false`               |
-| `preview_label`          | Label for preview versions. E.g. `BETA` for `1.0.1-BETA-1`                                                  | `preview`             |
-| `preview_separator`      | Separator between label and number. E.g. `-` for `1.0.1-BETA-1`                                             | `.`                   |
+| `commit`                 | Whether to commit the version change to the current branch                                                                    | `false`                                  |
+| `tag`                    | Whether to create a git tag in the format `{tag_prefix}{version}`                                                             | `false`                                  |
+| `tag_prefix`             | Prefix for the git tag. The tag will be `{tag_prefix}{version}`                                                               | `v`                                      |
+| `commit_message`         | Template for the commit message. Supports `{version}` and `{tag}` placeholders                                                | `VersionBump : {tag}`                    |
+| `push`                   | Whether to push the commit and tag to the remote origin                                                                       | `false`                                  |
+| `floating_major_version` | Create/update a floating major version tag (e.g. `v1` for `v1.2.0`). Requires `tag` to be `true`.                             | `false`                                  |
+| `preview_label`          | Label for preview versions. E.g. `BETA` for `1.0.1-BETA-1`                                                                    | `preview`                                |
+| `preview_separator`      | Separator between label and number. E.g. `-` for `1.0.1-BETA-1`                                                               | `.`                                      |
 
 ## Outputs
 
@@ -70,12 +70,12 @@ The preview label defaults to `preview` and separator to `.`, both customizable 
 
 When bumping a version that already has a preview suffix:
 
-| Bump Type | From              | To                | Description                      |
-|-----------|-------------------|-------------------|----------------------------------|
-| `major`   | `1.2.3-preview.5` | `2.0.0-preview.0` | Bumps major, resets preview to 0 |
-| `minor`   | `1.2.3-preview.5` | `1.3.0-preview.0` | Bumps minor, resets preview to 0 |
-| `patch`   | `1.2.3-preview.5` | `1.2.4-preview.0` | Bumps patch, resets preview to 0 |
-| `preview` | `1.2.3-preview.5` | `1.2.3-preview.6` | Increments preview number by 1   |
+| Bump Type | From              | To                | Description                               |
+|-----------|-------------------|-------------------|-------------------------------------------|
+| `major`   | `1.2.3-preview.5` | `2.0.0`           | Bumps major and produces a stable version |
+| `minor`   | `1.2.3-preview.5` | `1.3.0`           | Bumps minor and produces a stable version |
+| `patch`   | `1.2.3-preview.5` | `1.2.4`           | Bumps patch and produces a stable version |
+| `preview` | `1.2.3-preview.5` | `1.2.3-preview.6` | Increments preview number by 1            |
 
 ## Examples
 
@@ -302,14 +302,14 @@ python scripts/bump_version.py preview VERSION .//Version "" RC .
 bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]
 ```
 
-| Argument            | Description                                                                       |
-|---------------------|-----------------------------------------------------------------------------------|
-| `bump`              | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`                     |
-| `version_file`      | Path to the file containing the version                                           |
+| Argument            | Description                                                                                                               |
+|---------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `bump`              | Bump type: `major`, `minor`, `patch`, `preview`, or `custom`                                                              |
+| `version_file`      | Path to the file containing the version                                                                                   |
 | `version_element`   | XPath to the version element (XML) or dot-separated JSON key path (JSON). Defaults to `.//Version`/`version` by file type |
-| `custom_version`    | Version string when bump type is `custom`                                         |
-| `preview_label`     | Label for preview versions. Default: `preview`                                    |
-| `preview_separator` | Separator between label and number. Default: `.`                                  |
+| `custom_version`    | Version string when bump type is `custom`                                                                                 |
+| `preview_label`     | Label for preview versions. Default: `preview`                                                                            |
+| `preview_separator` | Separator between label and number. Default: `.`                                                                          |
 
 ## File Type Detection
 

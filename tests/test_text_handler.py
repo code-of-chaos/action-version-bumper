@@ -126,7 +126,7 @@ def test_main_patch_bump_from_custom_label_preview(tmp_path: Path, monkeypatch: 
 
     assert bv.main() == 0
 
-    assert vf.read_text().strip() == "1.0.1-BETA.0"
+    assert vf.read_text().strip() == "1.0.1"
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -156,4 +156,4 @@ def test_main_patch_bump_from_custom_separator_preview(tmp_path: Path, monkeypat
 
     assert bv.main() == 0
 
-    assert vf.read_text().strip() == "1.0.1-BETA-0"
+    assert vf.read_text().strip() == "1.0.1"
