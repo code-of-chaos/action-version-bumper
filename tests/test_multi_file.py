@@ -53,3 +53,18 @@ def test_set_version_cli_mode_updates_one_file(tmp_path: Path, monkeypatch: pyte
 
     assert bv.main() == 0
     assert "VERSION 1.2.3" in path.read_text(encoding="utf-8")
+
+
+def test_additional_files_receive_preview_and_custom_versions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    canonical = tmp_path / "VERSION"
+    additional = tmp_path / "CMakeLists.txt"
+    canonical.write_text("1.0.0\n", encoding="utf-8")
+    additional.write_text("project(App VERSION 1.0.0)\n", encoding="utf-8")
+
+    monkeypatch.setattr(sys, "argv", ["bump_version.py", "preview", str(canonical)])
+    assert bv.main() == 0
+    bv.set_version(additional, "1.0.0-preview.1")
+    assert "VERSION 1.0.0-preview.1" in additional.read_text(encoding="utf-8")
+
+    bv.set_version(additional, "4.0.0")
+    assert "VERSION 4.0.0" in additional.read_text(encoding="utf-8")
