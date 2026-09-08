@@ -55,6 +55,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v7
+              with:
+                  fetch-depth: 0
 
             - name: Create test files
               run: |
@@ -159,7 +161,6 @@ jobs:
               if: matrix.bump == 'patch'
               run: |
                   git init --bare "$RUNNER_TEMP/version-bumper-remote.git"
-                  git -C "$RUNNER_TEMP/version-bumper-remote.git" config receive.shallowUpdateAllowed true
                   git remote set-url origin "$RUNNER_TEMP/version-bumper-remote.git"
                   echo "9.7.0" > remote.VERSION
 
