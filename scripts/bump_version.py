@@ -4,142 +4,65 @@
 # ---------------------------------------------------------------------------------------------------------------------
 from __future__ import annotations
 
-import re
 import sys
-import xml.etree.ElementTree as Et
 from pathlib import Path
-from typing import Final, Literal, Never
+from typing import Any, Protocol
+
+# Allow this file to be executed directly as well as imported as a package.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.versioning import BumpPart, bump, fail, validate_version
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Constants
+# Handler interface
 # ---------------------------------------------------------------------------------------------------------------------
-VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(r"^\d+\.\d+\.\d+(-preview\.\d+)?$")
-BumpPart = Literal["major", "minor", "patch", "preview"]
-XML_EXTENSIONS: Final[set[str]] = {".xml", ".csproj", ".props", ".targets", ".vbproj", ".fsproj"}
+class Handler(Protocol):
+    EXTENSIONS: set[str]
+
+    def read_version(self, path: Path, element: str) -> tuple[str, Any]: ...
+    def write_version(self, path: Path, data: Any, element: str, new_version: str) -> None: ...
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Handlers
+# ---------------------------------------------------------------------------------------------------------------------
+from scripts import text_handler, xml_handler, json_handler
+
+HANDLERS: list[Handler] = [xml_handler, json_handler, text_handler]
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Code
 # ---------------------------------------------------------------------------------------------------------------------
-def fail(message: str) -> Never:
-    print(message)
-    raise SystemExit(1)
-
-
-def validate_version(version: str) -> bool:
-    """
-    Validate version format: major.minor.patch or major.minor.patch-preview.number.
-    """
-    return VERSION_PATTERN.match(version) is not None
-
-
-def bump(version: str, part: BumpPart) -> str:
-    """
-    Bump version according to 'major', 'minor', 'patch', or 'preview'.
-    Expects a format like: 0.1.0-preview.88
-    """
-    core: str
-    preview: str | None
-    core, preview = version, None
-    if "-preview." in version:
-        core, preview = version.split("-preview.")
-    had_preview = preview is not None
-
-    major, minor, patch = map(int, core.split("."))
-
-    if part == "major":
-        major += 1
-        minor = 0
-        patch = 0
-        preview = "0" if had_preview else None
-    elif part == "minor":
-        minor += 1
-        patch = 0
-        preview = "0" if had_preview else None
-    elif part == "patch":
-        patch += 1
-        preview = "0" if had_preview else None
-    elif part == "preview":
-        if preview is None:
-            preview = "1"
-        else:
-            preview = str(int(preview) + 1)
-    else:
-        raise ValueError(f"Unknown bump part: {part}")
-
-    new_version = f"{major}.{minor}.{patch}"
-    if preview is not None:
-        new_version += f"-preview.{preview}"
-    return new_version
-
-
-def is_xml_file(path: Path) -> bool:
-    """Check if the file is an XML file based on extension."""
-    return path.suffix.lower() in XML_EXTENSIONS
-
-
-def read_version_from_text(path: Path) -> str:
-    """Read version from a plain text file (e.g. VERSION). Returns first line trimmed."""
-    content = path.read_text(encoding="utf-8").strip()
-    if not content:
-        fail(f"Error: File is empty: {path}")
-    return content.splitlines()[0].strip()
-
-
-def write_version_to_text(path: Path, new_version: str) -> None:
-    """Write a plain text file with just the version string."""
-    path.write_text(new_version + "\n", encoding="utf-8")
-
-
-def read_version_from_xml(path: Path, xpath: str) -> tuple[str, Et.Element]:
-    """Read version from an XML file. Returns (version, element)."""
-    tree = Et.parse(path)
-    root = tree.getroot()
-    elem = root.find(xpath)
-    if elem is None or not elem.text:
-        fail(f"Error: Version element '{xpath}' not found in {path}.")
-    return elem.text.strip(), (tree, elem)
-
-
-def write_version_to_xml(path: Path, tree: Et.ElementTree, elem: Et.Element, new_version: str) -> None:
-    """Write updated version back to XML file."""
-    elem.text = new_version
-    tree.write(path, encoding="utf-8", xml_declaration=True)
-
-
-def get_major_tag(tag: str, prefix: str = "v") -> str:
-    """Extract the floating major version tag from a full version tag.
-
-    Args:
-        tag: The full version tag (e.g. 'v1.2.3' or 'v1.2.3-preview.1')
-        prefix: The tag prefix (default: 'v')
-
-    Returns:
-        The floating major version tag (e.g. 'v1')
-    """
-    version = tag[len(prefix):]
-    major = version.split(".")[0]
-    return f"{prefix}{major}"
+def find_handler(version_file: Path) -> Handler:
+    """Find the matching handler by file extension. Text handler is the fallback."""
+    suffix = version_file.suffix.lower()
+    for handler in HANDLERS:
+        if suffix in handler.EXTENSIONS:
+            return handler
+    return text_handler
 
 
 def main() -> int:
     if len(sys.argv) < 3:
-        fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version]")
+        fail("Usage: bump_version.py <bump> <version_file> [version_element] [custom_version] [preview_label] [preview_separator]")
 
     part = sys.argv[1].lower()
     version_file = Path(sys.argv[2])
-    version_element = sys.argv[3] if len(sys.argv) > 3 else ".//Version"
+    version_element = sys.argv[3] if len(sys.argv) > 3 else ""
+    preview_label = sys.argv[5] if len(sys.argv) > 5 else "preview"
+    preview_separator = sys.argv[6] if len(sys.argv) > 6 else "."
 
     if not version_file.exists():
         fail(f"Error: File not found: {version_file}")
 
-    # Read current version based on file type
-    use_xml = is_xml_file(version_file)
-    if use_xml:
-        old_version, (xml_tree, xml_elem) = read_version_from_xml(version_file, version_element)
-    else:
-        old_version = read_version_from_text(version_file)
-        if not validate_version(old_version):
-            fail(f"Error: Invalid version format '{old_version}' in {version_file}. Expected X.Y.Z or X.Y.Z-preview.N")
+    handler = find_handler(version_file)
+    if not version_element:
+        version_element = "version" if handler is json_handler else ".//Version"
+
+    # Read current version
+    old_version, data = handler.read_version(version_file, version_element)
+    if not validate_version(old_version, preview_label, preview_separator):
+        fail(f"Error: Invalid version format '{old_version}' in {version_file}. Expected X.Y.Z or X.Y.Z-{preview_label}{preview_separator}N")
 
     # Calculate new version
     if part == "custom":
@@ -147,21 +70,18 @@ def main() -> int:
             fail("Error: custom version must be provided as the 4th argument")
 
         new_version = sys.argv[4]
-        if not validate_version(new_version):
+        if not validate_version(new_version, preview_label, preview_separator):
             fail(
                 f"Error: Invalid version format '{new_version}'. "
-                "Expected format: X.Y.Z or X.Y.Z-preview.N"
+                f"Expected format: X.Y.Z or X.Y.Z-{preview_label}{preview_separator}N"
             )
     else:
         if part not in ("major", "minor", "patch", "preview"):
             fail(f"Error: Unknown bump part '{part}'")
-        new_version = bump(old_version, part)
+        new_version = bump(old_version, part, preview_label, preview_separator)
 
     # Write new version
-    if use_xml:
-        write_version_to_xml(version_file, xml_tree, xml_elem, new_version)
-    else:
-        write_version_to_text(version_file, new_version)
+    handler.write_version(version_file, data, version_element, new_version)
 
     print(f"Bumped version: {old_version} -> {new_version}")
     print(new_version)  # Output for GitHub Actions to capture
