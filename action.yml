@@ -74,10 +74,10 @@ outputs:
     value: ${{ steps.bump.outputs.old_version }}
   floating_major_tag:
     description: 'The floating major version tag name, if enabled'
-    value: ${{ steps.floating_tags.outputs.floating_major_tag }}
+    value: ${{ steps.bump.outputs.floating_major_tag }}
   floating_minor_tag:
     description: 'The floating minor version tag name, if enabled'
-    value: ${{ steps.floating_tags.outputs.floating_minor_tag }}
+    value: ${{ steps.bump.outputs.floating_minor_tag }}
 
 runs:
   using: 'composite'
@@ -91,139 +91,19 @@ runs:
       id: bump
       shell: bash
       env:
+        VERSION_FILE: ${{ inputs.version_file }}
+        BUMP: ${{ inputs.bump }}
+        CUSTOM_VERSION: ${{ inputs.custom_version }}
+        VERSION_ELEMENT: ${{ inputs.version_element }}
         ADDITIONAL_VERSION_FILES: ${{ inputs.additional_version_files }}
+        COMMIT: ${{ inputs.commit }}
+        TAG: ${{ inputs.tag }}
+        TAG_PREFIX: ${{ inputs.tag_prefix }}
+        COMMIT_MESSAGE: ${{ inputs.commit_message }}
+        PUSH: ${{ inputs.push }}
+        FLOATING_MAJOR_VERSION: ${{ inputs.floating_major_version }}
+        FLOATING_MINOR_VERSION: ${{ inputs.floating_minor_version }}
+        PREVIEW_LABEL: ${{ inputs.preview_label }}
+        PREVIEW_SEPARATOR: ${{ inputs.preview_separator }}
         VERSION_BUMPER_REQUIRE_RELATIVE_PATHS: 'true'
-      run: |
-        set -euo pipefail
-
-        BUMP="${{ inputs.bump }}"
-        VERSION_FILE="${{ inputs.version_file }}"
-        CUSTOM_VERSION="${{ inputs.custom_version }}"
-        VERSION_ELEMENT="${{ inputs.version_element }}"
-        TAG_PREFIX="${{ inputs.tag_prefix }}"
-        PREVIEW_LABEL="${{ inputs.preview_label }}"
-        PREVIEW_SEPARATOR="${{ inputs.preview_separator }}"
-
-        ARGS=("$BUMP" "$VERSION_FILE" "$VERSION_ELEMENT")
-        if [ "$BUMP" == "custom" ]; then
-          if [ -z "$CUSTOM_VERSION" ]; then
-            echo "Error: custom_version is required when bump is 'custom'"
-            exit 1
-          fi
-          ARGS+=("$CUSTOM_VERSION")
-        fi
-        ARGS+=("$PREVIEW_LABEL")
-        ARGS+=("$PREVIEW_SEPARATOR")
-
-        OUTPUT=$(python "${{ github.action_path }}/src/bump_version.py" "${ARGS[@]}")
-        echo "$OUTPUT"
-
-        NEW_VERSION=$(echo "$OUTPUT" | tail -n 1)
-        OLD_VERSION=$(echo "$OUTPUT" | head -n 1 | sed 's/Bumped version: \(.*\) -> .*/\1/')
-        TAG="${TAG_PREFIX}${NEW_VERSION}"
-
-        echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-        echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
-        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
-        while IFS= read -r additional_file; do
-          additional_file="${additional_file%$'\r'}"
-          [ -z "$additional_file" ] && continue
-          python "${{ github.action_path }}/src/bump_version.py" --set-version "$additional_file" "$NEW_VERSION"
-        done <<< "$ADDITIONAL_VERSION_FILES"
-
-    - name: Commit and Tag
-      if: inputs.commit == 'true' || inputs.tag == 'true' || inputs.push == 'true'
-      shell: bash
-      env:
-        ADDITIONAL_VERSION_FILES: ${{ inputs.additional_version_files }}
-      run: |
-        set -euo pipefail
-
-        TAG="${{ steps.bump.outputs.tag }}"
-        VERSION="${{ steps.bump.outputs.version }}"
-        COMMIT_MSG="${{ inputs.commit_message }}"
-        COMMIT_MSG="${COMMIT_MSG//\{version\}/$VERSION}"
-        COMMIT_MSG="${COMMIT_MSG//\{tag\}/$TAG}"
-
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        if [ "${{ inputs.commit }}" == "true" ]; then
-          git add "${{ inputs.version_file }}"
-          while IFS= read -r additional_file; do
-            additional_file="${additional_file%$'\r'}"
-            [ -z "$additional_file" ] && continue
-            git add "$additional_file"
-          done <<< "$ADDITIONAL_VERSION_FILES"
-          if ! git diff --cached --quiet; then
-            git commit -m "$COMMIT_MSG"
-          else
-            echo "No version file changes detected; skipping commit."
-          fi
-        fi
-
-        if [ "${{ inputs.tag }}" == "true" ]; then
-          if git ls-remote --tags origin "$TAG" 2>/dev/null | grep -q "refs/tags/$TAG$"; then
-            echo "Tag $TAG already exists on origin; skipping tag."
-          else
-            if ! git rev-parse "$TAG" >/dev/null 2>&1; then
-              git tag "$TAG"
-            fi
-          fi
-        fi
-
-        if [ "${{ inputs.push }}" == "true" ]; then
-          git push origin HEAD:refs/heads/${{ github.ref_name }}
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            git push origin "$TAG"
-          fi
-        fi
-
-        if [ "${{ inputs.tag }}" == "true" ]; then
-          TAG_PREFIX="${{ inputs.tag_prefix }}"
-          VERSION_NO_PREFIX="${VERSION#${TAG_PREFIX}}"
-          if [ "${{ inputs.floating_major_version }}" == "true" ]; then
-            MAJOR="${VERSION_NO_PREFIX%%.*}"
-            FLOATING_MAJOR_TAG="${TAG_PREFIX}${MAJOR}"
-            git tag -f "$FLOATING_MAJOR_TAG"
-            if [ "${{ inputs.push }}" == "true" ]; then
-              git push origin "$FLOATING_MAJOR_TAG" --force
-            fi
-          fi
-          if [ "${{ inputs.floating_minor_version }}" == "true" ]; then
-            MAJOR_MINOR="${VERSION_NO_PREFIX%.*}"
-            FLOATING_MINOR_TAG="${TAG_PREFIX}${MAJOR_MINOR}"
-            git tag -f "$FLOATING_MINOR_TAG"
-            if [ "${{ inputs.push }}" == "true" ]; then
-              git push origin "$FLOATING_MINOR_TAG" --force
-            fi
-          fi
-        fi
-
-    - name: Output floating tags
-      id: floating_tags
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        if [ "${{ inputs.tag }}" == "true" ]; then
-          TAG="${{ steps.bump.outputs.tag }}"
-          TAG_PREFIX="${{ inputs.tag_prefix }}"
-          VERSION_NO_PREFIX="${TAG#${TAG_PREFIX}}"
-          FLOATING_MAJOR_TAG=""
-          FLOATING_MINOR_TAG=""
-          if [ "${{ inputs.floating_major_version }}" == "true" ]; then
-            MAJOR="${VERSION_NO_PREFIX%%.*}"
-            FLOATING_MAJOR_TAG="${TAG_PREFIX}${MAJOR}"
-          fi
-          if [ "${{ inputs.floating_minor_version }}" == "true" ]; then
-            MAJOR_MINOR="${VERSION_NO_PREFIX%.*}"
-            FLOATING_MINOR_TAG="${TAG_PREFIX}${MAJOR_MINOR}"
-          fi
-          echo "floating_major_tag=$FLOATING_MAJOR_TAG" >> "$GITHUB_OUTPUT"
-          echo "floating_minor_tag=$FLOATING_MINOR_TAG" >> "$GITHUB_OUTPUT"
-        else
-          echo "floating_major_tag=" >> "$GITHUB_OUTPUT"
-          echo "floating_minor_tag=" >> "$GITHUB_OUTPUT"
-        fi
+      run: python "${{ github.action_path }}/src/action.py"
