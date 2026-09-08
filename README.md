@@ -2,18 +2,17 @@
 
 A reusable GitHub Action for bumping semantic versions in project files. Supports XML files (`.csproj`, `Directory.Build.props`, etc.), JSON files (`package.json`, etc.), CMake files (`CMakeLists.txt`), and plain text files (`VERSION`, `.version`, etc.).
 
-## Version 2 Migration
+## Release Notes
 
-Version 2 removes the ambiguous `floating_tag` output. Use `floating_major_tag` and/or `floating_minor_tag` instead. Both floating tag inputs can be enabled together.
-
-The reusable release workflow now exposes `floating_major_tag` and `floating_minor_tag` to its callers and enables both floating tag levels by default. See [CHANGELOG.md](CHANGELOG.md) for the complete v2 migration summary.
+See [CHANGELOG.md](CHANGELOG.md) for migration notes and release history.
 
 ## How It Works
 
 1. Reads the current version from the specified file
 2. Bumps the version according to the selected bump type
 3. Writes the updated version back to the file
-4. Optionally commits, tags, and pushes the change
+4. Applies the calculated version to any additional files
+5. Optionally commits, tags, and pushes the change
 
 The action auto-detects file type based on extension:
 - **XML files** (`.xml`, `.csproj`, `.props`, `.targets`, `.vbproj`, `.fsproj`): Reads/writes using XPath
