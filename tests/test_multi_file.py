@@ -46,6 +46,26 @@ def test_additional_file_invalid_fails(tmp_path: Path) -> None:
         bv.set_version(path, "1.0.1")
 
 
+@pytest.mark.parametrize("path", [Path("..") / "outside.VERSION", Path("C:/outside.VERSION")])
+def test_additional_file_must_be_repository_relative(path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VERSION_BUMPER_REQUIRE_RELATIVE_PATHS", "true")
+    with pytest.raises(SystemExit):
+        bv.set_version(path, "1.0.1")
+
+
+def test_additional_file_must_be_inside_github_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    workspace = tmp_path / "workspace"
+    outside = tmp_path / "outside.VERSION"
+    workspace.mkdir()
+    outside.write_text("1.0.0\n", encoding="utf-8")
+    monkeypatch.setenv("GITHUB_WORKSPACE", str(workspace))
+    monkeypatch.setenv("VERSION_BUMPER_REQUIRE_RELATIVE_PATHS", "true")
+    monkeypatch.chdir(tmp_path)
+
+    with pytest.raises(SystemExit):
+        bv.set_version(Path("outside.VERSION"), "1.0.1")
+
+
 def test_set_version_cli_mode_updates_one_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     path = tmp_path / "CMakeLists.txt"
     path.write_text("project(App VERSION 1.0.0)\n", encoding="utf-8")

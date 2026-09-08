@@ -92,6 +92,7 @@ runs:
       shell: bash
       env:
         ADDITIONAL_VERSION_FILES: ${{ inputs.additional_version_files }}
+        VERSION_BUMPER_REQUIRE_RELATIVE_PATHS: 'true'
       run: |
         set -euo pipefail
 
@@ -126,6 +127,7 @@ runs:
         echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
         while IFS= read -r additional_file; do
+          additional_file="${additional_file%$'\r'}"
           [ -z "$additional_file" ] && continue
           python "${{ github.action_path }}/src/bump_version.py" --set-version "$additional_file" "$NEW_VERSION"
         done <<< "$ADDITIONAL_VERSION_FILES"
@@ -150,6 +152,7 @@ runs:
         if [ "${{ inputs.commit }}" == "true" ]; then
           git add "${{ inputs.version_file }}"
           while IFS= read -r additional_file; do
+            additional_file="${additional_file%$'\r'}"
             [ -z "$additional_file" ] && continue
             git add "$additional_file"
           done <<< "$ADDITIONAL_VERSION_FILES"

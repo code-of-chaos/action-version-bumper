@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -54,6 +55,12 @@ def default_element(handler: Handler) -> str:
 
 def set_version(path: Path, new_version: str, element: str = "") -> None:
     """Apply an already-calculated version to one file without bumping it."""
+    if os.environ.get("VERSION_BUMPER_REQUIRE_RELATIVE_PATHS") == "true":
+        if path.is_absolute() or ".." in path.parts:
+            fail(f"Error: Additional version file must be repository-relative: {path}")
+        workspace = os.environ.get("GITHUB_WORKSPACE")
+        if workspace and not (Path.cwd() / path).resolve().is_relative_to(Path(workspace).resolve()):
+            fail(f"Error: Additional version file must be inside GITHUB_WORKSPACE: {path}")
     if not path.exists():
         fail(f"Error: File not found: {path}")
 

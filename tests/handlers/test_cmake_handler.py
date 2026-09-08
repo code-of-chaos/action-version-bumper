@@ -60,6 +60,31 @@ def test_main_ambiguous_cmake_project_versions_fail(tmp_path: Path, monkeypatch:
         bv.main()
 
 
+def test_commented_cmake_project_is_ignored(tmp_path: Path) -> None:
+    content = "# project(Commented VERSION 9.9.9)\nproject(Actual VERSION 1.0.0)\n"
+    path = _write_cmake_file(tmp_path, content)
+
+    bv.set_version(path, "1.0.1")
+
+    assert path.read_text(encoding="utf-8") == "# project(Commented VERSION 9.9.9)\nproject(Actual VERSION 1.0.1)\n"
+
+
+def test_comment_only_cmake_version_fails(tmp_path: Path) -> None:
+    path = _write_cmake_file(tmp_path, "# project(Commented VERSION 1.0.0)\n")
+
+    with pytest.raises(SystemExit):
+        bv.set_version(path, "1.0.1")
+
+
+def test_bracket_comment_cmake_project_is_ignored(tmp_path: Path) -> None:
+    content = "#[[ project(Commented VERSION 9.9.9) ]]\nproject(Actual VERSION 1.0.0)\n"
+    path = _write_cmake_file(tmp_path, content)
+
+    bv.set_version(path, "1.0.1")
+
+    assert path.read_text(encoding="utf-8") == "#[[ project(Commented VERSION 9.9.9) ]]\nproject(Actual VERSION 1.0.1)\n"
+
+
 def test_cmake_preserves_crlf_line_endings(tmp_path: Path) -> None:
     path = _write_cmake_file(tmp_path, "project(One VERSION 1.0.0)\r\nset(NAME One)\r\n")
 
