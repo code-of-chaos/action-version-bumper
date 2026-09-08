@@ -31,8 +31,8 @@ jobs:
             -   name: Run tests
                 run: pytest tests/ -v
 
-    action-test-version:
-        name: "CI: action/version/${{ matrix.bump }}"
+    action-test-version-files:
+        name: "CI: action/version-files/${{ matrix.bump }}"
         if: ${{ inputs.run_action_tests }}
         runs-on: ubuntu-latest
         strategy:
@@ -40,98 +40,35 @@ jobs:
             matrix:
                 include:
                     -   bump: major
-                        expected_old: "0.1.0"
-                        expected_new: "1.0.0"
-                        expected_tag: "v1.0.0"
+                        expected_text: "1.0.0"
+                        expected_xml: "2.0.0"
+                        expected_json: "2.0.0"
                     -   bump: minor
-                        expected_old: "0.1.0"
-                        expected_new: "0.2.0"
-                        expected_tag: "v0.2.0"
+                        expected_text: "0.2.0"
+                        expected_xml: "1.1.0"
+                        expected_json: "1.3.0"
                     -   bump: patch
-                        expected_old: "0.1.0"
-                        expected_new: "0.1.1"
-                        expected_tag: "v0.1.1"
+                        expected_text: "0.1.1"
+                        expected_xml: "1.0.1"
+                        expected_json: "1.2.4"
                     -   bump: custom
-                        expected_old: "0.1.0"
-                        expected_new: "2.0.0"
-                        expected_tag: "v2.0.0"
+                        expected_text: "2.0.0"
+                        expected_xml: "3.0.0"
+                        expected_json: "2.0.0"
                         custom_version: "2.0.0"
         steps:
-            -   name: Checkout
-                uses: actions/checkout@v7
-
-            -   name: Create test VERSION file
-                run: echo "0.1.0" > VERSION
-
-            -   name: Test action
-                id: bump
-                uses: ./
-                with:
-                    version_file: VERSION
-                    bump: ${{ matrix.bump }}
-                    custom_version: ${{ matrix.custom_version || '' }}
-
-            -   name: Verify output
-                run: |
-                    [ "${{ steps.bump.outputs.version }}" = "${{ matrix.expected_new }}" ] || exit 1
-                    [ "${{ steps.bump.outputs.old_version }}" = "${{ matrix.expected_old }}" ] || exit 1
-                    [ "${{ steps.bump.outputs.tag }}" = "${{ matrix.expected_tag }}" ] || exit 1
-
-    action-test-xml:
-        name: "CI: action/xml/${{ matrix.bump }}"
-        if: ${{ inputs.run_action_tests }}
-        runs-on: ubuntu-latest
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    -   bump: major
-                        expected_new: "2.0.0"
-                    -   bump: minor
-                        expected_new: "1.1.0"
-                    -   bump: patch
-                        expected_new: "1.0.1"
-                    -   bump: custom
-                        expected_new: "3.0.0"
-                        custom_version: "3.0.0"
-        steps:
             - name: Checkout
               uses: actions/checkout@v7
 
-            -   name: Create test XML file
-                run: |
-                    cat > Directory.Build.props << 'EOF'
-                    <?xml version="1.0" encoding="utf-8"?>
-                    <Project>
-                      <PropertyGroup><Version>1.0.0</Version></PropertyGroup>
-                    </Project>
-                    EOF
-
-            -   name: Test action
-                id: bump
-                uses: ./
-                with:
-                    version_file: Directory.Build.props
-                    bump: ${{ matrix.bump }}
-                    version_element: .//Version
-                    custom_version: ${{ matrix.custom_version || '' }}
-
-            -   name: Verify output
-                run: |
-                    [ "${{ steps.bump.outputs.version }}" = "${{ matrix.expected_new }}" ] || exit 1
-                    [ "${{ steps.bump.outputs.old_version }}" = "1.0.0" ] || exit 1
-                    [ "${{ steps.bump.outputs.tag }}" = "v${{ matrix.expected_new }}" ] || exit 1
-
-    action-test-json:
-        name: "CI: action/json"
-        if: ${{ inputs.run_action_tests }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v7
-
-            - name: Create test package.json
+            - name: Create test files
               run: |
+                  echo "0.1.0" > VERSION
+                  cat > Directory.Build.props << 'EOF'
+                  <?xml version="1.0" encoding="utf-8"?>
+                  <Project>
+                    <PropertyGroup><Version>1.0.0</Version></PropertyGroup>
+                  </Project>
+                  EOF
                   cat > package.json << 'EOF'
                   {
                     "name": "test-package",
@@ -140,15 +77,42 @@ jobs:
                   }
                   EOF
 
-            - name: Test action
-              id: bump
+            - name: Test plain text action
+              id: bump_text
+              uses: ./
+              with:
+                  version_file: VERSION
+                  bump: ${{ matrix.bump }}
+                  custom_version: ${{ matrix.custom_version || '' }}
+
+            - name: Test XML action
+              id: bump_xml
+              uses: ./
+              with:
+                  version_file: Directory.Build.props
+                  bump: ${{ matrix.bump }}
+                  version_element: .//Version
+                  custom_version: ${{ matrix.custom_version || '' }}
+
+            - name: Test JSON action
+              id: bump_json
               uses: ./
               with:
                   version_file: package.json
-                  bump: patch
+                  bump: ${{ matrix.bump }}
+                  custom_version: ${{ matrix.custom_version || '' }}
 
-            - name: Verify output and JSON
+            - name: Verify all file types
               run: |
-                  [ "${{ steps.bump.outputs.version }}" = "1.2.4" ] || exit 1
-                  [ "${{ steps.bump.outputs.old_version }}" = "1.2.3" ] || exit 1
-                  python -c "import json; data=json.load(open('package.json')); assert data['version'] == '1.2.4'; assert data['name'] == 'test-package'"
+                  [ "${{ steps.bump_text.outputs.version }}" = "${{ matrix.expected_text }}" ] || exit 1
+                  [ "${{ steps.bump_text.outputs.old_version }}" = "0.1.0" ] || exit 1
+                  [ "${{ steps.bump_text.outputs.tag }}" = "v${{ matrix.expected_text }}" ] || exit 1
+                  [ "${{ steps.bump_xml.outputs.version }}" = "${{ matrix.expected_xml }}" ] || exit 1
+                  [ "${{ steps.bump_xml.outputs.old_version }}" = "1.0.0" ] || exit 1
+                  [ "${{ steps.bump_xml.outputs.tag }}" = "v${{ matrix.expected_xml }}" ] || exit 1
+                  [ "${{ steps.bump_json.outputs.version }}" = "${{ matrix.expected_json }}" ] || exit 1
+                  [ "${{ steps.bump_json.outputs.old_version }}" = "1.2.3" ] || exit 1
+                  [ "${{ steps.bump_json.outputs.tag }}" = "v${{ matrix.expected_json }}" ] || exit 1
+                  grep -q "${{ matrix.expected_text }}" VERSION
+                  grep -q "<Version>${{ matrix.expected_xml }}</Version>" Directory.Build.props
+                  python -c "import json; data=json.load(open('package.json')); assert data['version'] == '${{ matrix.expected_json }}'; assert data['name'] == 'test-package'"
