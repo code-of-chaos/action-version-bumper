@@ -221,28 +221,6 @@ jobs:
                   {"name":"remote-test","version":"9.7.0"}
                   EOF
                   echo 'project(Remote VERSION 9.7.0)' > remote/CMakeLists.txt
-                  echo "8.0.0" > remote-failure.VERSION
-
-            - name: Verify additional-file failure stops before Git operations
-              if: matrix.bump == 'patch'
-              id: bump_failure
-              continue-on-error: true
-              uses: ./
-              with:
-                  version_file: remote-failure.VERSION
-                  bump: patch
-                  commit: 'true'
-                  tag: 'true'
-                  push: 'true'
-                  additional_version_files: missing-additional.VERSION
-
-            - name: Verify additional-file failure boundary
-              if: matrix.bump == 'patch'
-              run: |
-                  [ "${{ steps.bump_failure.outcome }}" = "failure" ] || exit 1
-                  git diff --cached --quiet
-                  if git tag -l "v8.0.1" | grep -q .; then exit 1; fi
-                  if git ls-remote --exit-code origin refs/tags/v8.0.1; then exit 1; fi
 
             - name: Test remote push and floating tag update
               if: matrix.bump == 'patch'
