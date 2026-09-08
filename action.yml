@@ -45,6 +45,10 @@ inputs:
     description: 'Create/update a floating major version tag (e.g. v1 for v1.2.0). Requires tag to be true.'
     required: false
     default: 'false'
+  floating_minor_version:
+    description: 'Create/update a floating minor version tag (e.g. v1.2 for v1.2.0). Requires tag to be true. Cannot be used with floating_major_version.'
+    required: false
+    default: 'false'
   preview_label:
     description: 'Label for preview versions (default: "preview"). E.g. "BETA" for 1.0.1-BETA-1'
     required: false
@@ -65,8 +69,14 @@ outputs:
     description: 'The previous version string'
     value: ${{ steps.bump.outputs.old_version }}
   floating_tag:
-    description: 'The floating major version tag name (if floating_major_version is enabled)'
+    description: 'The floating tag name (major when enabled, otherwise minor)'
     value: ${{ steps.floating_tag.outputs.floating_tag }}
+  floating_major_tag:
+    description: 'The floating major version tag name, if enabled'
+    value: ${{ steps.floating_tag.outputs.floating_major_tag }}
+  floating_minor_tag:
+    description: 'The floating minor version tag name, if enabled'
+    value: ${{ steps.floating_tag.outputs.floating_minor_tag }}
 
 runs:
   using: 'composite'
@@ -153,15 +163,24 @@ runs:
           fi
         fi
 
-        if [ "${{ inputs.floating_major_version }}" == "true" ] && [ "${{ inputs.tag }}" == "true" ]; then
+        if [ "${{ inputs.tag }}" == "true" ]; then
           TAG_PREFIX="${{ inputs.tag_prefix }}"
           VERSION_NO_PREFIX="${VERSION#${TAG_PREFIX}}"
-          MAJOR="${VERSION_NO_PREFIX%%.*}"
-          FLOATING_TAG="${TAG_PREFIX}${MAJOR}"
-
-          git tag -f "$FLOATING_TAG"
-          if [ "${{ inputs.push }}" == "true" ]; then
-            git push origin "$FLOATING_TAG" --force
+          if [ "${{ inputs.floating_major_version }}" == "true" ]; then
+            MAJOR="${VERSION_NO_PREFIX%%.*}"
+            FLOATING_MAJOR_TAG="${TAG_PREFIX}${MAJOR}"
+            git tag -f "$FLOATING_MAJOR_TAG"
+            if [ "${{ inputs.push }}" == "true" ]; then
+              git push origin "$FLOATING_MAJOR_TAG" --force
+            fi
+          fi
+          if [ "${{ inputs.floating_minor_version }}" == "true" ]; then
+            MAJOR_MINOR="${VERSION_NO_PREFIX%.*}"
+            FLOATING_MINOR_TAG="${TAG_PREFIX}${MAJOR_MINOR}"
+            git tag -f "$FLOATING_MINOR_TAG"
+            if [ "${{ inputs.push }}" == "true" ]; then
+              git push origin "$FLOATING_MINOR_TAG" --force
+            fi
           fi
         fi
 
@@ -171,13 +190,29 @@ runs:
       run: |
         set -euo pipefail
 
-        if [ "${{ inputs.floating_major_version }}" == "true" ] && [ "${{ inputs.tag }}" == "true" ]; then
+        if [ "${{ inputs.tag }}" == "true" ]; then
           TAG="${{ steps.bump.outputs.tag }}"
           TAG_PREFIX="${{ inputs.tag_prefix }}"
           VERSION_NO_PREFIX="${TAG#${TAG_PREFIX}}"
-          MAJOR="${VERSION_NO_PREFIX%%.*}"
-          FLOATING_TAG="${TAG_PREFIX}${MAJOR}"
+          FLOATING_MAJOR_TAG=""
+          FLOATING_MINOR_TAG=""
+          if [ "${{ inputs.floating_major_version }}" == "true" ]; then
+            MAJOR="${VERSION_NO_PREFIX%%.*}"
+            FLOATING_MAJOR_TAG="${TAG_PREFIX}${MAJOR}"
+          fi
+          if [ "${{ inputs.floating_minor_version }}" == "true" ]; then
+            MAJOR_MINOR="${VERSION_NO_PREFIX%.*}"
+            FLOATING_MINOR_TAG="${TAG_PREFIX}${MAJOR_MINOR}"
+          fi
+          FLOATING_TAG="$FLOATING_MAJOR_TAG"
+          if [ -z "$FLOATING_TAG" ]; then
+            FLOATING_TAG="$FLOATING_MINOR_TAG"
+          fi
           echo "floating_tag=$FLOATING_TAG" >> "$GITHUB_OUTPUT"
+          echo "floating_major_tag=$FLOATING_MAJOR_TAG" >> "$GITHUB_OUTPUT"
+          echo "floating_minor_tag=$FLOATING_MINOR_TAG" >> "$GITHUB_OUTPUT"
         else
           echo "floating_tag=" >> "$GITHUB_OUTPUT"
+          echo "floating_major_tag=" >> "$GITHUB_OUTPUT"
+          echo "floating_minor_tag=" >> "$GITHUB_OUTPUT"
         fi

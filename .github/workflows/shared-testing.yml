@@ -72,6 +72,8 @@ jobs:
                     "description": "JSON integration test"
                   }
                   EOF
+                  echo "9.8.7" > floating.VERSION
+                  echo "9.8.7" > floating-minor.VERSION
 
             - name: Test plain text action
               id: bump_text
@@ -98,6 +100,27 @@ jobs:
                   bump: ${{ matrix.bump }}
                   custom_version: ${{ matrix.custom_version || '' }}
 
+            - name: Test floating major tag
+              if: matrix.bump == 'patch'
+              id: bump_floating
+              uses: ./
+              with:
+                  version_file: floating.VERSION
+                  bump: patch
+                  tag: 'true'
+                  floating_major_version: 'true'
+                  floating_minor_version: 'true'
+
+            - name: Test floating minor tag
+              if: matrix.bump == 'patch'
+              id: bump_floating_minor
+              uses: ./
+              with:
+                  version_file: floating-minor.VERSION
+                  bump: patch
+                  tag: 'true'
+                  floating_minor_version: 'true'
+
             - name: Verify all file types
               run: |
                   [ "${{ steps.bump_text.outputs.version }}" = "${{ matrix.expected_version }}" ] || exit 1
@@ -112,3 +135,23 @@ jobs:
                   grep -q "${{ matrix.expected_version }}" VERSION
                   grep -q "<Version>${{ matrix.expected_version }}</Version>" Directory.Build.props
                   python -c "import json; data=json.load(open('package.json')); assert data['version'] == '${{ matrix.expected_version }}'; assert data['name'] == 'test-package'"
+
+            - name: Verify floating major tag
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_floating.outputs.version }}" = "9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.tag }}" = "v9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.floating_tag }}" = "v9" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.floating_major_tag }}" = "v9" ] || exit 1
+                  [ "${{ steps.bump_floating.outputs.floating_minor_tag }}" = "v9.8" ] || exit 1
+                  test "$(git rev-parse refs/tags/v9.8.8)" = "$(git rev-parse HEAD)"
+                  test "$(git rev-parse refs/tags/v9)" = "$(git rev-parse HEAD)"
+                  test "$(git rev-parse refs/tags/v9.8)" = "$(git rev-parse HEAD)"
+
+            - name: Verify floating minor tag
+              if: matrix.bump == 'patch'
+              run: |
+                  [ "${{ steps.bump_floating_minor.outputs.version }}" = "9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating_minor.outputs.tag }}" = "v9.8.8" ] || exit 1
+                  [ "${{ steps.bump_floating_minor.outputs.floating_tag }}" = "v9.8" ] || exit 1
+                  test "$(git rev-parse refs/tags/v9.8)" = "$(git rev-parse HEAD)"

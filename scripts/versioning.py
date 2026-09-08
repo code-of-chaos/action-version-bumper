@@ -80,3 +80,18 @@ def get_major_tag(tag: str, prefix: str = "v") -> str:
     version = tag[len(prefix):]
     major = version.split(".")[0]
     return f"{prefix}{major}"
+
+
+def get_minor_tag(tag: str, prefix: str = "v") -> str:
+    """Extract the floating minor version tag from a full version tag.
+
+    Args:
+        tag: The full version tag (e.g. 'v1.2.3' or 'v1.2.3-preview.1')
+        prefix: The tag prefix (default: 'v')
+
+    Returns:
+        The floating minor version tag (e.g. 'v1.2')
+    """
+    version = tag[len(prefix):]
+    major, minor = version.split(".", 2)[:2]
+    return f"{prefix}{major}.{minor}"
