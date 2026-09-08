@@ -50,6 +50,13 @@ def test_commit_tags_floating_tags_and_push(
     )
     calls: list[list[str]] = []
     tag_created = False
+    bump_calls = 0
+    original_bump_file = action.bump_file
+
+    def bump_once(*args: object, **kwargs: object) -> tuple[str, str]:
+        nonlocal bump_calls
+        bump_calls += 1
+        return original_bump_file(*args, **kwargs)
 
     def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         nonlocal tag_created
@@ -66,8 +73,10 @@ def test_commit_tags_floating_tags_and_push(
         return subprocess.CompletedProcess(command, 0, "", "")
 
     monkeypatch.setattr(action.subprocess, "run", fake_run)
+    monkeypatch.setattr(action, "bump_file", bump_once)
     assert action.main() == 0
 
+    assert bump_calls == 1
     assert version_file.read_text(encoding="utf-8").strip() == "1.2.4"
     assert output.read_text(encoding="utf-8").splitlines() == [
         "version=1.2.4",

@@ -12,6 +12,24 @@ on:
                 default: true
 
 jobs:
+    actionlint:
+        name: "CI: actionlint"
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v7
+
+            -   name: Setup Go
+                uses: actions/setup-go@v7
+                with:
+                    go-version: stable
+
+            -   name: Install actionlint
+                run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+
+            -   name: Lint GitHub Actions
+                run: "$(go env GOPATH)/bin/actionlint"
+
     python-tests:
         name: "CI: python"
         if: ${{ inputs.run_python_tests }}

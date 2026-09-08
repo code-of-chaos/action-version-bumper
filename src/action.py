@@ -41,7 +41,8 @@ def write_output(name: str, value: str) -> None:
 
 
 def additional_files(value: str) -> list[Path]:
-    return [Path(line.rstrip("\r")) for line in value.splitlines() if line.strip()]
+    lines = (line.rstrip("\r") for line in value.splitlines())
+    return [Path(line) for line in lines if line]
 
 
 def remote_tag_exists(tag: str) -> bool:
